@@ -26,4 +26,15 @@ public:
         window.draw(border);
         window.draw(text);
     }
+    std::string getString() {
+        return text.getString();
+    }
+    bool isMouseOver(const sf::RenderWindow& window) const {
+        sf::Vector2i mousePosition = sf::Mouse::getPosition(window);
+        sf::Vector2f borderPosition = border.getPosition();
+        sf::Vector2f rectSize = border.getSize();
+
+        return (mousePosition.x >= borderPosition.x && mousePosition.x <= borderPosition.x + rectSize.x &&
+            mousePosition.y >= borderPosition.y && mousePosition.y <= borderPosition.y + rectSize.y);
+    }
 };

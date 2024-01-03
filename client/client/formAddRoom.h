@@ -2,11 +2,12 @@
 
 #include <SFML/Graphics.hpp>
 #include <string>
+#include "textbox.h"
 
 class Form {
 public:
     Form(sf::RenderWindow& window);
-
+    Form(sf::RenderWindow& window, std::string nameRoom);
     void handleInput();
     void draw();
     bool isSendButtonPressed();
@@ -20,9 +21,13 @@ private:
     sf::Font font;
     sf::Text nameLabel;
     sf::Text passwordLabel;
-    sf::Text nameText;
-    sf::Text passwordText;
+
+    Textbox textRoomName;
+    Textbox textRoomPassword;
+    
+
     sf::RectangleShape sendButton;
+    sf::Text textSendButton;
 
     std::string name;
     std::string password;

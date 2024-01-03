@@ -27,6 +27,9 @@
     <ClCompile Include="formAddRoom.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="tetris2.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="textbox.h">
@@ -45,6 +48,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="formAddRoom.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="tetris2.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

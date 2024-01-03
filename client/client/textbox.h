@@ -11,6 +11,11 @@
 
 class Textbox {
 public:
+	Textbox() {
+		textbox.setCharacterSize(20);
+		isSelected = false;
+		textbox.setFillColor(sf::Color::Black);
+	}
 	Textbox(int size, sf::Color color, bool sel) {
 		textbox.setCharacterSize(size);
 		textbox.setFillColor(color);
@@ -44,6 +49,9 @@ public:
 
 	void setString() {
 		textbox.setString("");
+	}
+	void setString(std::string strTemp) {
+		textbox.setString(strTemp);
 	}
 
 	// Change selected state:

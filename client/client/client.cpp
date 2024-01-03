@@ -8,6 +8,7 @@
 #include "textbox.h"
 #include <time.h>
 #include "tetris.h"
+#include "tetris2.h"
 #include <sstream>
 #include "room.h"
 #include "alert.h"
@@ -23,6 +24,7 @@
 
 const char* SERVER_IP = "127.0.0.1";
 const unsigned short SERVER_PORT = 55001;
+const unsigned short CLIENT_SERVER_PORT = 55005;
 const int BUFFER_SIZE = 1024;
 
 using namespace sf;
@@ -211,7 +213,7 @@ int main() {
 	std::string serverAdd = "127.0.0.1";
 	SOCKET clientSocket = connectToServer(serverAdd.c_str(), SERVER_PORT, "Server1");
 
-
+	
 	std::vector<Room> buttonList;
 	
    
@@ -264,29 +266,15 @@ int main() {
 	logoTexture.loadFromFile("images/logo.jpg");
 	sf::Sprite logoSprite(logoTexture);
 	// Tạo các đối tượng nút
-	sf::RectangleShape buttonTrain(sf::Vector2f(50, 60));
-	sf::RectangleShape buttonFight(sf::Vector2f(50, 100));
+	sf::RectangleShape buttonTrain(sf::Vector2f(150, 80));
+	sf::RectangleShape buttonFight(sf::Vector2f(150, 80));
+	sf::RectangleShape buttonTest(sf::Vector2f(150, 80));
+	sf::Text textButtonTrain, textButtonFight, textButtonTest;
+
+
 	// Tạo các đối tượng nút nhỏ
 	sf::CircleShape smallButton1(30.f);
 	sf::CircleShape smallButton2(30.f);
-
-
-
-	sf::RectangleShape menuBackground(sf::Vector2f(600, 100));
-	menuBackground.setFillColor(sf::Color(100, 100, 100));
-
-	sf::Text listOptionText;
-	listOptionText.setFont(arial);
-	listOptionText.setCharacterSize(20);
-	listOptionText.setFillColor(sf::Color::Black);
-	listOptionText.setString("Danh Sách");
-
-	sf::Text createOptionText;
-	createOptionText.setFont(arial);
-	createOptionText.setCharacterSize(20);
-	createOptionText.setFillColor(sf::Color::Black);
-	createOptionText.setString("Tạo");
-
 
 
 	sf::RectangleShape backButton(sf::Vector2f(100, 50));
@@ -506,8 +494,48 @@ int main() {
 								
 
 							}
+
+							if (buttonTest.getGlobalBounds().contains(sf::Vector2f(e.mouseButton.x, e.mouseButton.y)))
+							{
+
+								// Xử lý sự kiện cho nút Test ở đây
+								std::cout << "Test";
+								
+								window.clear();
+								window.setVisible(false);
+
+								std::srand(std::time(0));
+								auto tetris = std::make_shared<Tetris2>();
+								bool sendData = false;
+								std::stringstream stream;
+								std::string str_temp;
+								// Đăng ký callback khi game over
+								tetris->setGameOverCallback([&](int score) {
+									// Xử lý khi game over, ví dụ: gửi tín hiệu về server
+									if (!sendData)
+									{
+										sendData = true;
+										std::cout << "Game over! Sending signal to server...\n";
+										// Send data to the server
+										std::string inter = "TRAIN";
+										stream << score;
+										stream >> str_temp;
+										std::string message = inter + "||" + str_temp + "||";
+										send(clientSocket, message.c_str(), message.size(), 0);
+										window.setVisible(sendData);
+									}
+
+									});
+
+
+								tetris->run();
+
+
+
+
+							}
 						}
-						if (scene == 6) {
+						if (scene == 6 ) {
 							
 							if (backButton.getGlobalBounds().contains(sf::Vector2f(e.mouseButton.x, e.mouseButton.y)))
 							{
@@ -518,7 +546,7 @@ int main() {
 								sf::RenderWindow Form2(sf::VideoMode(400, 200), "SFML Form");
 
 								Form form1(Form2);
-
+								
 								while (Form2.isOpen()) {
 									form1.handleInput();
 									
@@ -526,7 +554,7 @@ int main() {
 									Form2.clear(sf::Color::White);
 
 									form1.draw();
-
+									
 									Form2.display();
 
 									if (form1.isSendButtonPressed()) {
@@ -534,15 +562,100 @@ int main() {
 										// Ví dụ: lấy dữ liệu từ form
 										std::string name = form1.getName();
 										std::string password = form1.getPassword();
+										std::cout << name << "-" << password << "\n";
+
+										std::string inter = "ADD_ROOM";
+										
+										std::string message = inter + "||" + name + "||" + password;
+										send(clientSocket, message.c_str(), message.size(), 0);
+										// Receive data from the server
+										char buffer[1024];
+										int bytesRead = recv(clientSocket, buffer, sizeof(buffer), 0);
+										if (bytesRead > 0) {
+											buffer[bytesRead] = '\0';
+											std::cout << "Received from server: " << buffer << std::endl;
+											std::string messFromServer = std::string(buffer, bytesRead);
+											struct demo messInfo = tokenize(messFromServer, "||");
+											if (messInfo.arr[0] == "+OK") {
+												scene = 7;
+											}
+											else if (messInfo.arr[0] == "-NO") {
+												scene = 6;
+												std::cout << "Error add room\n";
+											}
+										}
 
 										// Reset trạng thái của button để tránh xử lý lặp lại
 										form1.resetButtonState();
+										Form2.close();
 									}
 								}
-
-								std::cout << "Button Clicked!" << std::endl;
+								Form2.close();
+							
 							}
+							// Kiểm tra xem click vào button nào
+							for (const auto& button : buttonList) {
+								
+								if (button.isMouseOver(window)) {
+									std::string text_temp = button.text.getString();
+									sf::RenderWindow Form2(sf::VideoMode(400, 200), "SFML Form");
 
+									Form form1(Form2, text_temp);
+
+									while (Form2.isOpen()) {
+										form1.handleInput();
+
+
+										Form2.clear(sf::Color::White);
+
+										form1.draw();
+
+										Form2.display();
+
+										if (form1.isSendButtonPressed()) {
+											// Xử lý dữ liệu khi button "Gửi" được nhấp
+											// Ví dụ: lấy dữ liệu từ form
+											std::string name = form1.getName();
+											std::string password = form1.getPassword();
+											std::cout << name << "-" << password << "\n";
+
+											std::string inter = "JOIN_ROOM";
+
+											std::string message = inter + "||" + name + "||" + password;
+											send(clientSocket, message.c_str(), message.size(), 0);
+											// Receive data from the server
+											char buffer[1024];
+											int bytesRead = recv(clientSocket, buffer, sizeof(buffer), 0);
+											if (bytesRead > 0) {
+												buffer[bytesRead] = '\0';
+												std::cout << "Received from server: " << buffer << std::endl;
+												std::string messFromServer = std::string(buffer, bytesRead);
+												struct demo messInfo = tokenize(messFromServer, "||");
+												if (messInfo.arr[0] == "+OK") {
+													scene = 7;
+												}
+												else if (messInfo.arr[0] == "-NO") {
+													scene = 6;
+													std::cout << "Error join room\n";
+												}
+											}
+
+											// Reset trạng thái của button để tránh xử lý lặp lại
+											form1.resetButtonState();
+											Form2.close();
+										}
+									}
+									Form2.close();
+									std::cout << "Join room:" << text_temp << "\n";
+								}
+							}
+						}
+						if (scene == 7) {
+
+							if (backButton.getGlobalBounds().contains(sf::Vector2f(e.mouseButton.x, e.mouseButton.y)))
+							{
+								scene = 6;
+							}
 						}
 					}
 				}
@@ -691,7 +804,27 @@ int main() {
 
 				
 				buttonTrain.setPosition(100, 200);
-				buttonFight.setPosition(100 , 250);
+				textButtonTrain.setCharacterSize(22);
+				textButtonTrain.setFillColor(sf::Color::Black);
+				textButtonTrain.setFont(arial);
+				textButtonTrain.setString("Training");
+				textButtonTrain.setPosition(140, 225);
+
+				buttonFight.setPosition(100 , 300);
+				buttonFight.setFillColor(sf::Color::Yellow);
+				textButtonFight.setCharacterSize(22);
+				textButtonFight.setFillColor(sf::Color::Black);
+				textButtonFight.setFont(arial);
+				textButtonFight.setString("Solo");
+				textButtonFight.setPosition(150, 325);
+
+
+				buttonTest.setPosition(300, 200);
+				textButtonTest.setCharacterSize(22);
+				textButtonTest.setFillColor(sf::Color::Black);
+				textButtonTest.setFont(arial);
+				textButtonTest.setString("Test");
+				textButtonTest.setPosition(340, 225);
 
 				
 				smallButton1.setPosition(bottomRect.left + 50.f, bottomRect.top + 50.f);
@@ -701,7 +834,11 @@ int main() {
 				window.clear();
 				window.draw(logoSprite);
 				window.draw(buttonTrain);
+				window.draw(buttonTest);
+				window.draw(textButtonTest);
 				window.draw(buttonFight);
+				window.draw(textButtonFight);
+				window.draw(textButtonTrain);
 				window.draw(smallButton1);
 				window.draw(smallButton2);
 			}
@@ -785,6 +922,15 @@ int main() {
 				window.draw(backText);
 
 				
+			}
+			if (scene == 7)
+			{
+				backText.setPosition(10, 560);
+
+				window.draw(logoSprite);
+
+				window.draw(backButton);
+				window.draw(backText);;
 			}
         window.display();
        

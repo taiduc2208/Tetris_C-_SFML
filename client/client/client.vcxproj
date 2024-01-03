@@ -141,6 +141,7 @@
     <ClCompile Include="client.cpp" />
     <ClCompile Include="formAddRoom.cpp" />
     <ClCompile Include="tetris.cpp" />
+    <ClCompile Include="tetris2.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="addRoom.h" />
@@ -148,6 +149,7 @@
     <ClInclude Include="formAddRoom.h" />
     <ClInclude Include="room.h" />
     <ClInclude Include="tetris.h" />
+    <ClInclude Include="tetris2.h" />
     <ClInclude Include="textbox.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

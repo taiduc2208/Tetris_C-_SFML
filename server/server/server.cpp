@@ -42,6 +42,17 @@ struct demoAcc
 demoAcc accInfoMain;
 int info = 1;
 
+// Hàm để tìm và xóa phòng dựa trên socket
+void removeRoomBySocket(int socketToRemove) {
+    auto it = std::remove_if(gameRooms.begin(), gameRooms.end(),
+        [socketToRemove](const room& r) {
+            return std::find(r.sockets.begin(), r.sockets.end(), socketToRemove) != r.sockets.end();
+        });
+    if (it != gameRooms.end()) {
+        gameRooms.erase(it);
+    }
+}
+
 void sendGameRooms(SOCKET clientSocket, const std::vector<room>& gameRooms) {
     // Gửi số lượng phòng trước
     int numRooms = gameRooms.size();
@@ -171,6 +182,56 @@ void handleClient(int clientSocket) {
             std::cout << "Score: " << e << "\n" << std::endl;
 
         }
+        else if (clientInfo.arr[0] == "ADD_ROOM") {
+            std::string e, p;
+            e = clientInfo.arr[1];
+            p = clientInfo.arr[2];
+            int checkSuccess = 0;
+            // Gửi thông tin từng phòng
+            for (const auto& room : gameRooms) {
+                if (e == room.name) {
+                    send(clientSocket, "-NO||6", 7, 0);
+                    checkSuccess++;
+                    break;
+                }
+                
+            }
+            if (checkSuccess == 0) {
+                send(clientSocket, "+OK||7", 7, 0);
+                room room1;
+                room1.name = e;
+                room1.passwd = p;
+                room1.sockets.push_back(clientSocket);  
+                gameRooms.push_back(room1);
+            }
+            
+
+        }
+        else if (clientInfo.arr[0] == "JOIN_ROOM") {
+            std::string e, p;
+            e = clientInfo.arr[1];
+            p = clientInfo.arr[2];
+            int checkSuccess = 0;
+            // Gửi thông tin từng phòng
+            for (auto& room : gameRooms) {
+                if (e == room.name) {
+                    if (p == room.passwd) {
+                        send(clientSocket, "+OK||7", 7, 0);
+                        room.sockets.push_back(clientSocket);
+                        checkSuccess++;
+                        break;
+                    }
+                    
+                }
+
+            }
+            if (checkSuccess == 0) {
+                send(clientSocket, "-NO||6", 7, 0);
+
+            }
+
+
+        }
         else if (clientInfo.arr[0] == "LIST") {
             // Gửi số lượng phòng trước
                 // Thêm phòng game
@@ -193,6 +254,8 @@ void handleClient(int clientSocket) {
     }
 
     // Close the socket when done
+
+    removeRoomBySocket(clientSocket);
     closesocket(clientSocket);
 }
 
