@@ -5,7 +5,9 @@ Tetris::~Tetris() {
     // ...
 }
 
-Tetris::Tetris() {
+Tetris::Tetris(SOCKET socket) {
+
+    gameSock = socket;
 
     area.resize(lines);
     for (std::size_t i{}; i < area.size(); ++i) {
@@ -87,6 +89,11 @@ void Tetris::events() {
             else if (e->key.code == sf::Keyboard::Left) {
                 --dirx;
             }
+            else if (gameover && sf::Keyboard::isKeyPressed(sf::Keyboard::R)) {
+                sendData = false;
+                reset();
+                gameover = false;
+            }
         }
     }
 
@@ -122,6 +129,37 @@ void Tetris::draw() {
     }
     window->display();
 }
+void Tetris::setGameOverCallback(std::function<void(int)> callback) {
+    gameOverCallback = callback;
+}
+
+void Tetris::reset() {
+    // Reset relevant variables to their initial values
+    dirx = score = { 0 };
+    rotate = gameover = { false };
+    timercount = { 0.f };
+    delay = { 0.3f };
+    color = { 1 };
+
+    // Reset the game area
+    for (std::size_t i = 0; i < lines; ++i) {
+        for (std::size_t j = 0; j < cols; ++j) {
+            area[i][j] = 0;
+        }
+    }
+    setGameOverCallback([&](int score) {
+        if (!sendData) {
+            sendData = true;
+            // Send data to the server
+            std::string inter = "TRAIN";
+            std::string message = inter + "||" + std::to_string(score) + "||";
+            send(gameSock, message.c_str(), message.size(), 0);
+
+        }
+        });
+    // Update the score display
+    txtScore.setString("SCORE: " + std::to_string(score));
+}
 
 
 void Tetris::run() {
@@ -143,9 +181,7 @@ void Tetris::run() {
     }
 }
 
-void Tetris::setGameOverCallback(std::function<void(int)> callback) {
-    gameOverCallback = callback;
-}
+
 int Tetris::getScore() const {
     return score;
 }

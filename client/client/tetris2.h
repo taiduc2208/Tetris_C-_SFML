@@ -3,9 +3,13 @@
 #include <SFML/Graphics.hpp>
 #include <memory>
 #include <functional>
+#include <winsock2.h>
+#include <ws2tcpip.h>
+
 
 class Tetris2 {
 
+    
     static const std::uint32_t lines{ 20 };
     static const std::uint32_t cols{ 10 };
     static const std::uint32_t squares{ 4 };
@@ -23,11 +27,12 @@ class Tetris2 {
     std::shared_ptr<sf::Sprite> sprite, background, background1;
     sf::Clock clock;
     sf::Font  font;
-    sf::Text txtScore, txtGameOver;
+    sf::Text txtScore, txtGameOver, textResult;
 
     int dirx, color, score;
-    bool rotate, gameover;
+    bool rotate, gameover, sendResult;
     float timercount, delay;
+    
 
 protected:
     void events();
@@ -41,9 +46,14 @@ protected:
     std::function<void(int)> gameOverCallback;
 
 public:
-    Tetris2();
+    std::vector<std::vector<std::uint32_t>> areaEnermy;
+    Tetris2(SOCKET socket, std::string name);
     ~Tetris2();
     void run();
     void setGameOverCallback(std::function<void(int)> callback);
     int getScore() const;
+    void receiveData();
+    bool sendVector2D(SOCKET socket, const std::vector<std::vector<std::uint32_t>>& data);
+    SOCKET gameSocket;
+    std::string roomName;
 };

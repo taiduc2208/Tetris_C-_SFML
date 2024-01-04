@@ -18,10 +18,16 @@ const unsigned int MAX_CLIENTS = 5;
 struct room {
     std::string name;
     std::string passwd;
+    bool status;
+    int number;
     std::vector<int> sockets;
+    int score1 = -1;
+    int score2 = -1;
 };
 
 std::vector<room> gameRooms;
+
+
 
 struct demo
 {
@@ -52,6 +58,48 @@ void removeRoomBySocket(int socketToRemove) {
         gameRooms.erase(it);
     }
 }
+// Hàm gửi dữ liệu qua socket
+bool sendVector2D(SOCKET socket, const std::vector<std::vector<std::uint32_t>>& data) {
+    std::size_t rows = 20;
+    std::size_t cols = 10;
+
+    // Gửi dữ liệu của mảng
+    for (std::size_t i = 0; i < rows; ++i) {
+        for (std::size_t j = 0; j < cols; ++j) {
+            std::uint32_t value = data[i][j];
+            if (send(socket, reinterpret_cast<const char*>(&value), sizeof(value), 0) == -1) {
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+std::vector<std::vector<std::uint32_t>> recvVector2D(SOCKET socket) {
+    std::size_t rows, cols;
+    rows = 20; cols = 10;
+    std::vector<std::vector<std::uint32_t>> data;
+
+    data.resize(rows);
+    for (std::size_t i{}; i < data.size(); ++i) {
+        data[i].resize(cols);
+    }
+
+    for (std::size_t i = 0; i < rows; ++i) {
+        for (std::size_t j = 0; j < cols; ++j) {
+            std::uint32_t value;
+            if (recv(socket, reinterpret_cast<char*>(&value), sizeof(value), 0) == -1) {
+                std::cerr << "Error receiving data element" << std::endl;
+                return data;
+            }
+            data[i][j] = value;
+        }
+    }
+
+    return data;
+}
+
 
 void sendGameRooms(SOCKET clientSocket, const std::vector<room>& gameRooms) {
     // Gửi số lượng phòng trước
@@ -107,6 +155,16 @@ struct demoAcc input()
     } while (end != -1);
     return result;
 }
+
+ bool contains(std::vector<int> vec, int elem)
+ {
+     bool result = false;
+     if (find(vec.begin(), vec.end(), elem) != vec.end())
+     {
+         result = true;
+     }
+     return result;
+ }
 
 void handleClient(int clientSocket) {
     char buffer[1024];
@@ -201,6 +259,8 @@ void handleClient(int clientSocket) {
                 room room1;
                 room1.name = e;
                 room1.passwd = p;
+                room1.number = 1;
+                room1.status = false;
                 room1.sockets.push_back(clientSocket);  
                 gameRooms.push_back(room1);
             }
@@ -212,12 +272,20 @@ void handleClient(int clientSocket) {
             e = clientInfo.arr[1];
             p = clientInfo.arr[2];
             int checkSuccess = 0;
-            // Gửi thông tin từng phòng
+            // Kiểm tra thông tin từng phòng
             for (auto& room : gameRooms) {
                 if (e == room.name) {
                     if (p == room.passwd) {
-                        send(clientSocket, "+OK||7", 7, 0);
-                        room.sockets.push_back(clientSocket);
+                        
+                        if (!contains(room.sockets, clientSocket)) {
+                            room.sockets.push_back(clientSocket);
+                            room.number = 2;
+                            room.status = true;
+                            send(clientSocket, "+OK||8", 7, 0);
+                        }
+                        else {
+                            send(clientSocket, "+OK||7", 7, 0);
+                        }
                         checkSuccess++;
                         break;
                     }
@@ -246,6 +314,69 @@ void handleClient(int clientSocket) {
                 send(clientSocket, "-NO||6", 7, 0);
             }
         }
+        else if (clientInfo.arr[0] == "TETRIS") {
+            send(clientSocket, "-NO||6", 7, 0);
+            std::cout << "tetris game send data\n";
+        }
+        else if (clientInfo.arr[0] == "TETRIS_TEST") {
+
+            std::string e, p;
+            e = clientInfo.arr[1];
+            p = clientInfo.arr[2];
+            int checkSuccess = 0;
+            // Kiểm tra thông tin từng phòng
+            for (auto& room : gameRooms) {
+                if (e == room.name) {
+                    for (auto& socket : room.sockets) {
+                        if (socket != stoi(p)) {
+                            std::cout << socket << " ++ " << p << "\n";
+                            send(socket, "+OK||S", 7, 0);
+                        }
+                    }
+                    
+                }
+            }
+        }
+        else if (clientInfo.arr[0] == "SCORE") {
+
+            std::string score, roomname;
+            score = clientInfo.arr[1];
+            roomname = clientInfo.arr[2];
+            int checkSuccess = 0;
+            // Kiểm tra thông tin từng phòng
+            for (auto& room : gameRooms) {
+                if (roomname == room.name) {
+                    if (room.score1 == -1) {
+                        room.score1 = stoi(score);
+
+                        // Xu ly doi thu disconnect
+                        //
+                    }
+                    else {
+                        room.score2 = stoi(score);
+                        std::cout << "\ncheck score:  " << room.score1 << "++++" << room.score2 << "\n";
+                        bool win = (room.score2 > room.score1);
+                        bool draw = (room.score2 == room.score1);
+                        std::cout << "Server tra ket qua\n" << win << "--" << draw << "\n";
+                        for (auto& socket : room.sockets) {
+                            std::cout << socket << "--" << clientSocket << "\n";
+                            if (socket == clientSocket) {
+                                if (draw) send(clientSocket, "+OK||D", 7, 0);
+                                else if(win) send(clientSocket, "+OK||W", 7, 0);
+                                else send(clientSocket, "+OK||L", 7, 0);
+                            }
+                            else {
+                                if (draw) send(socket, "+OK||D", 7, 0);
+                                else if (win) send(socket, "+OK||L", 7, 0);
+                                else send(socket, "+OK||W", 7, 0);
+                            }
+                        }
+                    }
+
+                }
+            }
+        }
+
         std::cout << "Received from client: " << clientInfo.arr[0] << "\n" << clientSocket << std::endl;
         
         

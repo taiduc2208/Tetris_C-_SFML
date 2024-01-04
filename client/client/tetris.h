@@ -3,6 +3,10 @@
 #include <SFML/Graphics.hpp>
 #include <memory>
 #include <functional>
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <string.h>
+
 
 class Tetris {
 
@@ -26,8 +30,9 @@ class Tetris {
     sf::Text txtScore, txtGameOver;
 
     int dirx, color, score;
-    bool rotate, gameover;
+    bool rotate, gameover, sendData;
     float timercount, delay;
+    SOCKET gameSock;
 
 protected:
     void events();
@@ -41,9 +46,11 @@ protected:
     std::function<void(int)> gameOverCallback;
 
 public:
-    Tetris();
+    Tetris(SOCKET socket);
     ~Tetris();
     void run();
     void setGameOverCallback(std::function<void(int)> callback);
     int getScore() const;
+    void reset();
+
 };
