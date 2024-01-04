@@ -55,7 +55,18 @@ void removeRoomBySocket(int socketToRemove) {
             return std::find(r.sockets.begin(), r.sockets.end(), socketToRemove) != r.sockets.end();
         });
     if (it != gameRooms.end()) {
-        gameRooms.erase(it);
+        if (gameRooms[std::distance(gameRooms.begin(), it)].sockets.size() == 1) {
+            std::cout << "\n Delete room \n";
+            gameRooms.erase(it);
+        }
+        else {
+            auto it1 = std::find(gameRooms[std::distance(gameRooms.begin(), it)].sockets.begin(), gameRooms[std::distance(gameRooms.begin(), it)].sockets.end(), socketToRemove);
+            gameRooms[std::distance(gameRooms.begin(), it)].sockets.erase(it1);
+            std::cout << "\n Delete socket : " << socketToRemove << " khoi room :" << gameRooms[std::distance(gameRooms.begin(), it)].name << "\n";
+        }
+    }
+    else {
+        std::cout << "not found socket: " << socketToRemove << "\n";
     }
 }
 // Hàm gửi dữ liệu qua socket
@@ -306,7 +317,7 @@ void handleClient(int clientSocket) {
             
             int numRooms = gameRooms.size();  // Số lượng phòng (điều này phải được tính toán động trong thực tế)
             if (numRooms > 0) {
-                std::cout << numRooms << "\n";
+                //std::cout << numRooms << "\n";
                 send(clientSocket, "+OK||6", 7, 0);
                 sendGameRooms(clientSocket, gameRooms);
             }
@@ -328,7 +339,7 @@ void handleClient(int clientSocket) {
             for (auto& room : gameRooms) {
                 if (e == room.name) {
                     for (auto& socket : room.sockets) {
-                        if (socket != stoi(p)) {
+                        if (socket != clientSocket) {
                             std::cout << socket << " ++ " << p << "\n";
                             send(socket, "+OK||S", 7, 0);
                         }
@@ -337,6 +348,26 @@ void handleClient(int clientSocket) {
                 }
             }
         }
+
+        else if (clientInfo.arr[0] == "OUTGAME") {
+
+            std::string e, p;
+            e = clientInfo.arr[1];
+            p = clientInfo.arr[2];
+            int checkSuccess = 0;
+            // Kiểm tra thông tin từng phòng
+            for (auto& room : gameRooms) {
+                if (e == room.name) {
+                    for (auto& socket : room.sockets) {
+                        if (socket == (clientSocket)) {
+                            removeRoomBySocket(clientSocket);
+                        }
+                    }
+
+                }
+            }
+        }
+
         else if (clientInfo.arr[0] == "SCORE") {
 
             std::string score, roomname;
@@ -351,25 +382,39 @@ void handleClient(int clientSocket) {
 
                         // Xu ly doi thu disconnect
                         //
+                        if (room.sockets.size() == 1) {
+                            send(clientSocket, "+OK||C", 7, 0);
+                        }
+
                     }
                     else {
                         room.score2 = stoi(score);
-                        std::cout << "\ncheck score:  " << room.score1 << "++++" << room.score2 << "\n";
-                        bool win = (room.score2 > room.score1);
-                        bool draw = (room.score2 == room.score1);
-                        std::cout << "Server tra ket qua\n" << win << "--" << draw << "\n";
-                        for (auto& socket : room.sockets) {
-                            std::cout << socket << "--" << clientSocket << "\n";
-                            if (socket == clientSocket) {
-                                if (draw) send(clientSocket, "+OK||D", 7, 0);
-                                else if(win) send(clientSocket, "+OK||W", 7, 0);
-                                else send(clientSocket, "+OK||L", 7, 0);
+                        if (room.sockets.size() == 2) {
+                            int temp1, temp2;
+                            std::cout << "\ncheck score:  " << room.score1 << "++++" << room.score2 << "\n";
+                            bool win = (room.score2 > room.score1);
+                            bool draw = (room.score2 == room.score1);
+                            std::cout << "Server tra ket qua\n" << win << "--" << draw << "\n";
+                            for (auto& socket : room.sockets) {
+                                std::cout << socket << "--" << clientSocket << "\n";
+                                if (socket == clientSocket) {
+                                    temp1 = clientSocket;
+                                    if (draw) send(clientSocket, "+OK||D", 7, 0);
+                                    else if(win) send(clientSocket, "+OK||W", 7, 0);
+                                    else send(clientSocket, "+OK||L", 7, 0);
+                                }
+                                else {
+                                    temp2 = socket;
+                                    if (draw) send(socket, "+OK||D", 7, 0);
+                                    else if (win) send(socket, "+OK||L", 7, 0);
+                                    else send(socket, "+OK||W", 7, 0);
+                                }
                             }
-                            else {
-                                if (draw) send(socket, "+OK||D", 7, 0);
-                                else if (win) send(socket, "+OK||L", 7, 0);
-                                else send(socket, "+OK||W", 7, 0);
-                            }
+                            removeRoomBySocket(temp1);
+                            removeRoomBySocket(temp2);
+                        }
+                        else {
+                            send(clientSocket, "+OK||C", 7, 0);
                         }
                     }
 
@@ -377,7 +422,7 @@ void handleClient(int clientSocket) {
             }
         }
 
-        std::cout << "Received from client: " << clientInfo.arr[0] << "\n" << clientSocket << std::endl;
+        std::cout << "Received from client: " << clientInfo.arr[0] << "\n *********\n" << clientSocket << std::endl;
         
         
         // Echo back to the client

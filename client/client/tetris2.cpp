@@ -12,6 +12,7 @@ Tetris2::Tetris2(SOCKET socket, std::string name) {
     gameSocket = socket;
     roomName = name;
     sendResult = false;
+    
 
     areaEnermy.resize(lines);
     for (std::size_t i{}; i < areaEnermy.size(); ++i) {
@@ -106,8 +107,11 @@ void Tetris2::events() {
     auto e = std::make_shared<sf::Event>();
     while (window->pollEvent(*e)) {
         if (e->type == sf::Event::Closed) {
-            gameOverCallback(score);
+            if (!gameover) {
+                score = -10;
+            }
             window->close();
+            gameOverCallback(score);
         }
 
         if (e->type == sf::Event::KeyPressed) {
@@ -219,6 +223,12 @@ void Tetris2::draw() {
                     else if (messInfo1 == "L") {
                         textResult.setString("Loser");
                         textResult.setFillColor(sf::Color::Red);
+                    }
+                    else if (messInfo1 == "C") {
+                        textResult.setString("Winner\nPartner is disconncted");
+                        textResult.setFillColor(sf::Color::Blue);
+                        textResult.setCharacterSize(20);
+                        
                     }
                 }
             }

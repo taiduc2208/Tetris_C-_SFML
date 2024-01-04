@@ -728,8 +728,8 @@ int main() {
 
 								std::string message = inter1 + "||" + myRoom.name + "||" + str_temp;
 								send(clientSocket, message.c_str(), message.size(), 0);
-								char buffer[1024];
-								recv(clientSocket, buffer, sizeof(buffer), 0);
+								//char buffer[1024];
+								//recv(clientSocket, buffer, sizeof(buffer), 0);
 
 								window.clear();
 								
@@ -742,13 +742,20 @@ int main() {
 									if (!sendData2)
 									{
 										sendData2 = true;
+										if (score == -10) {
+											std::string inter12 = "OUTGAME";
+											std::string message = inter12 + "||" + myRoom.name + "||" + std::to_string(clientSocket);
+											send(clientSocket, message.c_str(), message.size(), 0);
+
+
+										}
 										std::cout << "Game over! Sending signal to server...\n";
 
 									}
 
 									});
 								tetris->run();
-
+								scene = 4;
 								std::cout << "Play game";
 							}
 						}
@@ -780,6 +787,14 @@ int main() {
 											if (!sendData3)
 											{
 												sendData3 = true;
+												if (score == -10) {
+
+													std::string inter1 = "OUTGAME";
+													std::string message = inter1 + "||" + myRoom.name + "||" + std::to_string(clientSocket);
+													send(clientSocket, message.c_str(), message.size(), 0);
+
+
+												}
 												std::cout << "Game over! Sending signal to server...\n";
 												
 											}
@@ -790,6 +805,7 @@ int main() {
 								}
 								
 								std::cout << "Ready";
+								scene = 4;
 							}
 						}
 					}
@@ -1018,6 +1034,7 @@ int main() {
 
 							
 							// Hiển thị thông tin các phòng
+							buttonList.clear();
 							for (int i = 0; i < receivedGameRooms.size(); ++i) {
 								// Add buttons to the list
 								buttonList.emplace_back(receivedGameRooms[i].name, arial, 20, sf::Vector2f(100.0f, 150.0f + i*(60.0f)));
