@@ -5,10 +5,10 @@ Tetris::~Tetris() {
     // ...
 }
 
-Tetris::Tetris(SOCKET socket) {
+Tetris::Tetris(SOCKET socket, std::string name) {
 
     gameSock = socket;
-
+    nameLogin = name;
     area.resize(lines);
     for (std::size_t i{}; i < area.size(); ++i) {
         area[i].resize(cols);
@@ -152,7 +152,7 @@ void Tetris::reset() {
             sendData = true;
             // Send data to the server
             std::string inter = "TRAIN";
-            std::string message = inter + "||" + std::to_string(score) + "||";
+            std::string message = inter + "||" + std::to_string(score) + "||" + nameLogin;
             send(gameSock, message.c_str(), message.size(), 0);
 
         }

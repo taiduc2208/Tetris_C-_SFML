@@ -17,6 +17,8 @@
 #include "formAddRoom.h"
 #include <thread>
 #include <future>
+#include <algorithm>
+#include <string.h>
 
 
 
@@ -66,6 +68,8 @@ scnGame sceneGame;
 account acc[100];
 bool first = true;
 bool updateListRoom = false;
+bool hasLogin = false;
+std::string nameLogin;
 
 struct GameRoom {
 	std::string name;
@@ -75,6 +79,11 @@ struct GameRoom {
 };
 
 GameRoom myRoom;
+
+struct Player {
+	std::string name;
+	std::string score;
+};
 
 std::vector<GameRoom> receiveGameRooms(SOCKET serverSocket) {
 	std::vector<GameRoom> receivedGameRooms;
@@ -116,6 +125,42 @@ std::vector<GameRoom> receiveGameRooms(SOCKET serverSocket) {
 	return receivedGameRooms;
 }
 
+std::vector<Player> receiveRank(SOCKET serverSocket) {
+	std::vector<Player> receivedRank;
+
+	// Nhận số lượng phòng
+	int numRooms123;
+	recv(serverSocket, reinterpret_cast<char*>(&numRooms123), sizeof(int), 0);
+	std::cout << numRooms123 << "\n";
+	// Nhận thông tin từng phòng
+	for (int i = 0; i < numRooms123; ++i) {
+		Player player;
+
+		// Nhận tên acc
+		int nameSize;
+		recv(serverSocket, reinterpret_cast<char*>(&nameSize), sizeof(int), 0);
+		char nameBuffer123[256];  // Điều này là giả định, bạn có thể sử dụng động để tránh giới hạn kích thước cứng
+		recv(serverSocket, nameBuffer123, nameSize, 0);
+		player.name = std::string(nameBuffer123, nameSize);
+		std::cout << "\n" << player.name << " --- ";
+		
+
+		// Nhận score
+		int scoreSize;
+		recv(serverSocket, reinterpret_cast<char*>(&scoreSize), sizeof(int), 0);
+		char nameBuffer321[256];  // Điều này là giả định, bạn có thể sử dụng động để tránh giới hạn kích thước cứng
+		recv(serverSocket, nameBuffer321, scoreSize, 0);
+		player.score = std::string(nameBuffer321, scoreSize);
+		std::cout  << player.score << " \n ";
+
+
+		// Thêm thông tin phòng vào vector
+		receivedRank.push_back(player);
+	}
+
+	return receivedRank;
+}
+
 struct demo
 {
 	//array declared inside structure
@@ -130,7 +175,6 @@ struct demo tokenize(std::string s, std::string del = " ")
 	do {
 		start = end + del.size();
 		end = s.find(del, start);
-		std::cout << s.substr(start, end - start) << std::endl;
 		result.arr[n] = s.substr(start, end - start);
 		n++;
 	} while (end != -1);
@@ -253,7 +297,8 @@ int main() {
 
 	
 	std::vector<Room> buttonList;
-	
+	std::vector<Room> textRank;
+
    
 	RenderWindow window(VideoMode(600, 600), "Login System made by Abu");
 	Texture t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12;
@@ -338,6 +383,14 @@ int main() {
 			{
 				if (e.type == Event::Closed)
 				{
+					// send to server
+					// Send data to the server
+					if (hasLogin) {
+						std::string inter = "LOGOUT";
+						std::string message = inter + "||" + nameLogin + "|| -";
+						send(clientSocket, message.c_str(), message.size(), 0);
+
+					}
 					window.close();
 				}
 				if (e.type == Event::MouseButtonPressed)
@@ -403,6 +456,8 @@ int main() {
 										std::string messFromServer = std::string(buffer, bytesRead);
 										struct demo messInfo = tokenize(messFromServer, "||");
 										if (messInfo.arr[0] == "+OK") {
+											nameLogin = e;
+											hasLogin = true;
 											scene = 4;
 										}
 										else if (messInfo.arr[0] == "-NO") {
@@ -476,6 +531,8 @@ int main() {
 											std::string messFromServer = std::string(buffer, bytesRead);
 											struct demo messInfo = tokenize(messFromServer, "||");
 											if (messInfo.arr[0] == "+OK") {
+												hasLogin = true;
+												nameLogin = e;
 												scene = 4;
 											}
 											else if (messInfo.arr[0] == "-NO") {
@@ -500,7 +557,7 @@ int main() {
 								window.setVisible(false);
 
 								std::srand(std::time(0));
-								auto tetris = std::make_shared<Tetris>(clientSocket);
+								auto tetris = std::make_shared<Tetris>(clientSocket, nameLogin);
 								bool sendData1 = false;
 								std::stringstream stream;
 								std::string str_temp;
@@ -515,7 +572,7 @@ int main() {
 										std::string inter = "TRAIN";
 										stream << score;
 										stream >> str_temp;
-										std::string message = inter + "||" + str_temp + "||";
+										std::string message = inter + "||" + str_temp + "||" +nameLogin;
 										send(clientSocket, message.c_str(), message.size(), 0);
 										window.setVisible(sendData1);
 									}
@@ -530,12 +587,40 @@ int main() {
 							if (buttonFight.getGlobalBounds().contains(sf::Vector2f(e.mouseButton.x, e.mouseButton.y)))
 							{
 
-								// Xử lý sự kiện cho nút Luyện tập ở đây
+								// Xử lý sự kiện cho nút Solo ở đây
 								std::cout << "Solo";
 								scene = 6;
 								
 
 							}
+							if (smallButton1.getGlobalBounds().contains(sf::Vector2f(e.mouseButton.x, e.mouseButton.y)))
+							{
+
+								// Xử lý sự kiện cho nút Rankking ở đây
+								// Send data to the server
+								std::string inter = "RANK";
+								std::string message = inter + "||-||-" ;
+								send(clientSocket, message.c_str(), message.size(), 0);
+
+								// Receive data from the server
+								std::vector<Player> leaderboard = receiveRank(clientSocket);
+								// Display leaderboard
+								window.clear();
+								for (std::size_t i = 0; i < std::min(leaderboard.size(), static_cast<std::size_t>(10)); ++i) {
+
+									textRank.emplace_back(std::to_string(i + 1) + ". " + leaderboard[i].name + ": " + (leaderboard[i].score), arial, 20, sf::Vector2f(100.0f, 150.0f + i * (60.0f)));;
+									
+								}
+								scene = 15;
+
+							}
+
+							if (backButton.getGlobalBounds().contains(sf::Vector2f(e.mouseButton.x, e.mouseButton.y)))
+							{
+								scene = 4;
+							}
+
+					
 
 							if (buttonTest.getGlobalBounds().contains(sf::Vector2f(e.mouseButton.x, e.mouseButton.y)))
 							{
@@ -557,7 +642,7 @@ int main() {
 								window.setVisible(false);
 
 								std::srand(std::time(0));
-								auto tetris = std::make_shared<Tetris2>(clientSocket, myRoom.name);
+								auto tetris = std::make_shared<Tetris2>(clientSocket, myRoom.name, nameLogin);
 
 								bool sendData = false;
 								std::stringstream stream1;
@@ -735,7 +820,7 @@ int main() {
 								
 
 								std::srand(std::time(0));
-								auto tetris = std::make_shared<Tetris2>(clientSocket, myRoom.name);
+								auto tetris = std::make_shared<Tetris2>(clientSocket, myRoom.name, nameLogin);
 								bool sendData2 = false;
 								tetris->setGameOverCallback([&](int score) {
 									// Xử lý khi game over, ví dụ: gửi tín hiệu về server
@@ -780,7 +865,7 @@ int main() {
 										
 										bool sendData3 = false;
 										std::srand(std::time(0));
-										auto tetris = std::make_shared<Tetris2>(clientSocket, myRoom.name);
+										auto tetris = std::make_shared<Tetris2>(clientSocket, myRoom.name, nameLogin);
 										
 										tetris->setGameOverCallback([&](int score) {
 											// Xử lý khi game over, ví dụ: gửi tín hiệu về server
@@ -807,6 +892,14 @@ int main() {
 								std::cout << "Ready";
 								scene = 4;
 							}
+						}
+						if (scene == 15) {
+
+							if (backButton.getGlobalBounds().contains(sf::Vector2f(e.mouseButton.x, e.mouseButton.y)))
+							{
+								scene = 4;
+							}
+							
 						}
 					}
 				}
@@ -979,7 +1072,7 @@ int main() {
 
 				
 				smallButton1.setPosition(bottomRect.left + 50.f, bottomRect.top + 50.f);
-				smallButton2.setPosition(bottomRect.left + bottomRect.width - 80.f, bottomRect.top + 50.f);
+				smallButton2.setPosition(bottomRect.left + 80.f, bottomRect.top + 50.f);
 
 				// Xóa cửa sổ để vẽ lại
 				window.clear();
@@ -1109,6 +1202,19 @@ int main() {
 
 				window.draw(readyButton);
 				window.draw(backButton);
+				window.draw(backText);
+			}
+			if (scene == 15)
+			{
+				backText.setPosition(10, 560);
+				window.draw(backButton);
+				window.draw(logoSprite);
+
+				for (const auto& button : textRank) {
+					button.draw(window);
+				}
+
+				
 				window.draw(backText);
 			}
         window.display();
