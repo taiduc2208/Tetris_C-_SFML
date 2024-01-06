@@ -146,6 +146,7 @@
   <ItemGroup>
     <ClInclude Include="addRoom.h" />
     <ClInclude Include="alert.h" />
+    <ClInclude Include="find.h" />
     <ClInclude Include="formAddRoom.h" />
     <ClInclude Include="room.h" />
     <ClInclude Include="tetris.h" />

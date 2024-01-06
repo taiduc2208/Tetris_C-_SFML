@@ -33,6 +33,10 @@ public:
 		textbox.setFont(fonts);
 	}
 
+	void setColor(sf::Color color) {
+		textbox.setFillColor(color);
+	}
+
 	void setPosition(sf::Vector2f point) {
 		textbox.setPosition(point);
 	}

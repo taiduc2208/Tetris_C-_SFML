@@ -53,5 +53,8 @@
     <ClInclude Include="tetris2.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="find.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

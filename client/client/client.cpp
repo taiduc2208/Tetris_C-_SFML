@@ -19,6 +19,7 @@
 #include <future>
 #include <algorithm>
 #include <string.h>
+#include "find.h"
 
 
 
@@ -383,6 +384,15 @@ int main() {
 	logOutText.setCharacterSize(20);
 	logOutText.setFillColor(sf::Color::Black);
 	logOutText.setString("Logout");
+
+
+	sf::RectangleShape searchButton(sf::Vector2f(150, 40));
+	sf::Text searchText;
+	searchText.setFont(arial);
+	searchText.setCharacterSize(20);
+	searchText.setFillColor(sf::Color::Black);
+	searchText.setString("Search");
+
 	
 
 	AddRoom addRoom("+", arial, 60, sf::Vector2f(500.0f, 50.0f));
@@ -637,65 +647,40 @@ int main() {
 									scene = 1;
 								}
 							}
-
-					
-
-							if (buttonTest.getGlobalBounds().contains(sf::Vector2f(e.mouseButton.x, e.mouseButton.y)))
+							
+							if (searchButton.getGlobalBounds().contains(sf::Vector2f(e.mouseButton.x, e.mouseButton.y)))
 							{
-								//std::string inter = "TETRIS_TEST";
-								//std::string str_temp;
-								//std::stringstream stream;
+								sf::RenderWindow search(sf::VideoMode(600, 200), "SFML Search Bar");
 
-								//stream << clientSocket;
-								//stream >> str_temp;
+								SearchBar searchBar(search);
 
-								//std::string message = inter + "||" + myRoom.name + "||" + str_temp;
-								//send(clientSocket, message.c_str(), message.size(), 0);
-								//
+								while (search.isOpen()) {
+									sf::Event event;
+									while (search.pollEvent(event)) {
+										if (event.type == sf::Event::Closed) {
+											search.close();
+										}
 
-								//// Xử lý sự kiện cho nút Test ở đây
-								std::cout << "Test";
-								//
-								//window.clear();
-								//window.setVisible(false);
+										searchBar.handleEvents(event);
+									}
 
-								//std::srand(std::time(0));
-								//auto tetris = std::make_shared<Tetris2>(clientSocket, myRoom.name, nameLogin);
+									search.clear();
+									searchBar.draw();
+									search.display();
 
-								//bool sendData = false;
-								//std::stringstream stream1;
-								//std::string str_temp1;
-								//// Đăng ký callback khi game over
-								//tetris->setGameOverCallback([&](int score) {
-								//	// Xử lý khi game over, ví dụ: gửi tín hiệu về server
-								//	if (!sendData)
-								//	{
-								//		sendData = true;
-								//		std::cout << "Game over! Sending signal to server...\n";
-								//		// Send data to the server
-								//		std::string inter = "TRAIN";
-								//		stream1 << score;
-								//		stream1 >> str_temp1;
-								//		std::string message = inter + "||" + str_temp1 + "||";
-								//		send(clientSocket, message.c_str(), message.size(), 0);
-								//		window.setVisible(sendData);
-								//	}
+									/*if (searchBar.isTextInputActive()) {
+										std::cout << "Search Text: " << searchBar.getSearchText() << std::endl;
+									}*/
 
-								//	});
+									if (searchBar.isFindButtonPressed()) {
+										
+										searchBar.setFindButtonPressed();
 
-
-								//tetris->run();
-
-								//std::future<std::vector<std::vector<std::uint32_t>>> resultFuture = std::async(std::launch::async, [&clientSocket]() {
-								//	return recvVector2D(clientSocket);
-								//	});
-								//// Tiếp tục thực hiện công việc khác trong luồng chính
-
-								//tetris->areaEnermy = resultFuture.get();
-								//tetris->receiveData();
-								//
-
+										std::cout << "Find button pressed!" << std::endl;
+									}
+								}
 							}
+					
 						}
 						if (scene == 6 ) {
 							
@@ -919,6 +904,14 @@ int main() {
 							}
 							
 						}
+						if (scene == 5) {
+
+							if (backButton.getGlobalBounds().contains(sf::Vector2f(e.mouseButton.x, e.mouseButton.y)))
+							{
+								scene = 1;
+							}
+
+						}
 					}
 				}
 				if (e.type == Event::TextEntered)
@@ -1086,58 +1079,81 @@ int main() {
 			if (scene == 4)
 			{
 				// Thiết lập các kích thước phần trên, giữa và dưới
-				sf::FloatRect topRect(0.f, 0.f, 800.f, 150.f);
-				sf::FloatRect middleRect(0.f, 150.f, 800.f, 300.f);
-				sf::FloatRect bottomRect(0.f, 450.f, 800.f, 150.f);
+				sf::FloatRect topRect(0.f, 0.f, 800.f, 80.f);
+				sf::FloatRect middleRect(0.f, 80.f, 800.f, 420.f);
+				sf::FloatRect bottomRect(0.f, 500.f, 800.f, 100.f);
 
-				
-				logoSprite.setPosition(topRect.left+100, topRect.top);
-				logoSprite.setScale(topRect.width / (2*logoTexture.getSize().x), topRect.height / (2 * logoTexture.getSize().y));
+				sf::RectangleShape topFrame(sf::Vector2f(topRect.width, topRect.height));
+				sf::RectangleShape middleFrame(sf::Vector2f(middleRect.width, middleRect.height));
+				sf::RectangleShape bottomFrame(sf::Vector2f(bottomRect.width, bottomRect.height));
 
+				// Đặt màu cho frame
+				topFrame.setFillColor(sf::Color::Blue);
+				middleFrame.setFillColor(sf::Color::Green);
+				bottomFrame.setFillColor(sf::Color::Red);
+
+				// Đặt vị trí cho từng frame
+				topFrame.setPosition(topRect.left, topRect.top);
+				middleFrame.setPosition(middleRect.left, middleRect.top);
+				bottomFrame.setPosition(bottomRect.left, bottomRect.top);
+
+
+				// top frame
+				logoSprite.setPosition(topRect.left+50, topRect.top + 10);
+				logoSprite.setScale(0.3f, 0.3f);
+
+
+				// middle frame
+				searchButton.setPosition(middleRect.left + 450 , middleRect.top + 20);
+				searchText.setString("Friend");
+				searchText.setPosition(middleRect.left + 465, middleRect.top + 25);
 				
-				buttonTrain.setPosition(100, 200);
+				buttonTrain.setPosition(middleRect.left + 80, middleRect.top + 40);
 				textButtonTrain.setCharacterSize(22);
 				textButtonTrain.setFillColor(sf::Color::Black);
 				textButtonTrain.setFont(arial);
 				textButtonTrain.setString("Training");
-				textButtonTrain.setPosition(140, 225);
+				textButtonTrain.setPosition(middleRect.left + 115, middleRect.top + 65);
 
-				buttonFight.setPosition(100 , 300);
+				buttonFight.setPosition(middleRect.left + 80, middleRect.top + 140);
 				textButtonFight.setCharacterSize(22);
 				textButtonFight.setFillColor(sf::Color::Black);
 				textButtonFight.setFont(arial);
 				textButtonFight.setString("Solo");
-				textButtonFight.setPosition(150, 325);
+				textButtonFight.setPosition(middleRect.left + 135, middleRect.top + 165);
 
 				
 					
-				logOutButton.setPosition(100, 400);
+				logOutButton.setPosition(middleRect.left + 80, middleRect.top + 240);
 				logOutButton.setFillColor(sf::Color::Yellow);
-				logOutText.setPosition(145, 425);
+				logOutText.setPosition(middleRect.left + 125, middleRect.top + 265);
 
 
-				buttonTest.setPosition(300, 200);
-				textButtonTest.setCharacterSize(22);
-				textButtonTest.setFillColor(sf::Color::Black);
-				textButtonTest.setFont(arial);
-				textButtonTest.setString("Test");
-				textButtonTest.setPosition(340, 225);
-
+				// bottom frame 
 				
 				smallButton1.setPosition(bottomRect.left + 50.f, bottomRect.top + 50.f);
-				smallButton2.setPosition(bottomRect.left + 80.f, bottomRect.top + 50.f);
+				smallButton2.setPosition(bottomRect.left + 280.f, bottomRect.top + 50.f);
 
 				// Xóa cửa sổ để vẽ lại
 				window.clear();
+
+				// Vẽ frame
+				window.draw(topFrame);
+				window.draw(middleFrame);
+				window.draw(bottomFrame);
+
 				window.draw(logoSprite);
+				window.draw(searchButton);
+				window.draw(searchText);
+
 				window.draw(buttonTrain);
-				window.draw(buttonTest);
-				window.draw(textButtonTest);
 				window.draw(buttonFight);
 				window.draw(textButtonFight);
 				window.draw(textButtonTrain);
 				window.draw(logOutButton);
 				window.draw(logOutText);
+
+
 				window.draw(smallButton1);
 				window.draw(smallButton2);
 			}
@@ -1145,6 +1161,12 @@ int main() {
 			{
 				loginFail.setPosition(193, 219);
 				window.draw(loginFail);
+
+				backButton.setPosition(233, 530);
+
+				backText.setPosition(245, 540);
+				window.draw(backButton);
+				window.draw(backText);
 			}
 			if (scene == 6)
 			{
