@@ -30,6 +30,8 @@ const unsigned short SERVER_PORT = 55001;
 const unsigned short CLIENT_SERVER_PORT = 55005;
 const int BUFFER_SIZE = 1024;
 
+
+bool typing = true;
 using namespace sf;
 
 
@@ -373,6 +375,16 @@ int main() {
 	backText.setFillColor(sf::Color::Black);
 	backText.setString("Back");
 
+
+	sf::RectangleShape logOutButton(sf::Vector2f(150, 80));
+
+	sf::Text logOutText;
+	logOutText.setFont(arial);
+	logOutText.setCharacterSize(20);
+	logOutText.setFillColor(sf::Color::Black);
+	logOutText.setString("Logout");
+	
+
 	AddRoom addRoom("+", arial, 60, sf::Vector2f(500.0f, 50.0f));
 
     while (window.isOpen()) {
@@ -615,67 +627,73 @@ int main() {
 
 							}
 
-							if (backButton.getGlobalBounds().contains(sf::Vector2f(e.mouseButton.x, e.mouseButton.y)))
+							if (logOutButton.getGlobalBounds().contains(sf::Vector2f(e.mouseButton.x, e.mouseButton.y)))
 							{
-								scene = 4;
+								if (hasLogin) {
+									std::string inter = "LOGOUT";
+									std::string message = inter + "||" + nameLogin + "|| -";
+									send(clientSocket, message.c_str(), message.size(), 0);
+									hasLogin = !hasLogin;
+									scene = 1;
+								}
 							}
 
 					
 
 							if (buttonTest.getGlobalBounds().contains(sf::Vector2f(e.mouseButton.x, e.mouseButton.y)))
 							{
-								std::string inter = "TETRIS_TEST";
-								std::string str_temp;
-								std::stringstream stream;
+								//std::string inter = "TETRIS_TEST";
+								//std::string str_temp;
+								//std::stringstream stream;
 
-								stream << clientSocket;
-								stream >> str_temp;
+								//stream << clientSocket;
+								//stream >> str_temp;
 
-								std::string message = inter + "||" + myRoom.name + "||" + str_temp;
-								send(clientSocket, message.c_str(), message.size(), 0);
-								
+								//std::string message = inter + "||" + myRoom.name + "||" + str_temp;
+								//send(clientSocket, message.c_str(), message.size(), 0);
+								//
 
-								// Xử lý sự kiện cho nút Test ở đây
+								//// Xử lý sự kiện cho nút Test ở đây
 								std::cout << "Test";
-								
-								window.clear();
-								window.setVisible(false);
+								//
+								//window.clear();
+								//window.setVisible(false);
 
-								std::srand(std::time(0));
-								auto tetris = std::make_shared<Tetris2>(clientSocket, myRoom.name, nameLogin);
+								//std::srand(std::time(0));
+								//auto tetris = std::make_shared<Tetris2>(clientSocket, myRoom.name, nameLogin);
 
-								bool sendData = false;
-								std::stringstream stream1;
-								std::string str_temp1;
-								// Đăng ký callback khi game over
-								tetris->setGameOverCallback([&](int score) {
-									// Xử lý khi game over, ví dụ: gửi tín hiệu về server
-									if (!sendData)
-									{
-										sendData = true;
-										std::cout << "Game over! Sending signal to server...\n";
-										// Send data to the server
-										std::string inter = "TRAIN";
-										stream1 << score;
-										stream1 >> str_temp1;
-										std::string message = inter + "||" + str_temp1 + "||";
-										send(clientSocket, message.c_str(), message.size(), 0);
-										window.setVisible(sendData);
-									}
+								//bool sendData = false;
+								//std::stringstream stream1;
+								//std::string str_temp1;
+								//// Đăng ký callback khi game over
+								//tetris->setGameOverCallback([&](int score) {
+								//	// Xử lý khi game over, ví dụ: gửi tín hiệu về server
+								//	if (!sendData)
+								//	{
+								//		sendData = true;
+								//		std::cout << "Game over! Sending signal to server...\n";
+								//		// Send data to the server
+								//		std::string inter = "TRAIN";
+								//		stream1 << score;
+								//		stream1 >> str_temp1;
+								//		std::string message = inter + "||" + str_temp1 + "||";
+								//		send(clientSocket, message.c_str(), message.size(), 0);
+								//		window.setVisible(sendData);
+								//	}
 
-									});
+								//	});
 
 
-								tetris->run();
+								//tetris->run();
 
-								std::future<std::vector<std::vector<std::uint32_t>>> resultFuture = std::async(std::launch::async, [&clientSocket]() {
-									return recvVector2D(clientSocket);
-									});
-								// Tiếp tục thực hiện công việc khác trong luồng chính
+								//std::future<std::vector<std::vector<std::uint32_t>>> resultFuture = std::async(std::launch::async, [&clientSocket]() {
+								//	return recvVector2D(clientSocket);
+								//	});
+								//// Tiếp tục thực hiện công việc khác trong luồng chính
 
-								tetris->areaEnermy = resultFuture.get();
-								tetris->receiveData();
-								
+								//tetris->areaEnermy = resultFuture.get();
+								//tetris->receiveData();
+								//
 
 							}
 						}
@@ -988,6 +1006,7 @@ int main() {
 			window.clear(Color(104, 167, 92));
 			if (scene == 1)
 			{
+				typing = true;
 				login.setPosition(75, 87);
 				window.draw(login);
 				registerr.setPosition(75, 343);
@@ -995,6 +1014,7 @@ int main() {
 			}
 			if (scene == 2)
 			{
+				
 				Submit.setPosition(143, 405);
 				window.draw(Submit);
 				Password.setPosition(50, 235);
@@ -1011,9 +1031,20 @@ int main() {
 
 				textLoginPassword.setPosition({ 269,237 });
 				textLoginPassword.drawTo(window);
+
+				if (!hasLogin) {
+					if (typing) {
+						textLoginEmail.resetText();
+						textLoginEmail.setString("");
+						textLoginPassword.resetText();
+						textLoginPassword.setString("");
+						typing = false;
+					}
+				}
 			}
 			if (scene == 3)
 			{
+				
 				Submit.setPosition(143, 405);
 				window.draw(Submit);
 				Back.setPosition(233, 530);
@@ -1026,14 +1057,31 @@ int main() {
 				window.draw(Password);
 				ConfirmPassword.setPosition(15, 280);
 				window.draw(ConfirmPassword);
+
 				textRegisterEmail.setPosition({ 175, 35 });
 				textRegisterEmail.drawTo(window);
+
 				textRegisterConfirmEmail.setPosition({ 303,117 });
 				textRegisterConfirmEmail.drawTo(window);
+
 				textRegisterPassword.setPosition({ 234,199 });
 				textRegisterPassword.drawTo(window);
+
 				textRegisterConfirmPassword.setPosition({ 339,281 });
 				textRegisterConfirmPassword.drawTo(window);
+				if (!hasLogin) {
+					if (typing) {
+						textRegisterEmail.resetText();
+						textRegisterEmail.setString("");
+						textRegisterConfirmEmail.resetText();
+						textRegisterConfirmEmail.setString("");
+						textRegisterPassword.resetText();
+						textRegisterPassword.setString("");
+						textRegisterConfirmPassword.resetText();
+						textRegisterConfirmPassword.setString("");
+						typing = false;
+					}
+				}
 			}
 			if (scene == 4)
 			{
@@ -1055,12 +1103,17 @@ int main() {
 				textButtonTrain.setPosition(140, 225);
 
 				buttonFight.setPosition(100 , 300);
-				buttonFight.setFillColor(sf::Color::Yellow);
 				textButtonFight.setCharacterSize(22);
 				textButtonFight.setFillColor(sf::Color::Black);
 				textButtonFight.setFont(arial);
 				textButtonFight.setString("Solo");
 				textButtonFight.setPosition(150, 325);
+
+				
+					
+				logOutButton.setPosition(100, 400);
+				logOutButton.setFillColor(sf::Color::Yellow);
+				logOutText.setPosition(145, 425);
 
 
 				buttonTest.setPosition(300, 200);
@@ -1083,6 +1136,8 @@ int main() {
 				window.draw(buttonFight);
 				window.draw(textButtonFight);
 				window.draw(textButtonTrain);
+				window.draw(logOutButton);
+				window.draw(logOutText);
 				window.draw(smallButton1);
 				window.draw(smallButton2);
 			}

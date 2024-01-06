@@ -10,11 +10,14 @@
 #include <vector>
 #include <algorithm>
 #include <cstdio>
+#include <direct.h>
 
 #pragma comment(lib, "ws2_32.lib")
 
 const unsigned short SERVER_PORT = 55001;
 const unsigned int MAX_CLIENTS = 5;
+
+
 
 
 struct room {
@@ -58,6 +61,48 @@ int info = 1;
 
 bool comparePlayers(const account& a, const account& b) {
     return std::stoi(a.playTrain) > std::stoi(b.playTrain);
+}
+
+void createFolderAndFile(const std::string& folderName1) {
+    // Tạo thư mục mới
+    std::string folderName = "client/" + folderName1;
+    if (_mkdir(folderName.c_str()) == 0) {
+        std::cout << "Thư mục \"" << folderName << "\" đã được tạo thành công.\n";
+    }
+    else {
+        std::cerr << "Không thể tạo thư mục.\n";
+        return;
+    }
+
+    // Tạo file mới trong thư mục vừa tạo
+    std::string filePath = folderName + "/" + folderName1 + "_friend.txt";
+    std::string filePath1 = folderName + "/" + folderName1 + "_trainHis.txt";
+    std::cout << filePath;
+    std::ofstream outputFile(filePath);
+   
+    if (outputFile.is_open()) {
+        std::cout << "File \"" << folderName1 << "_friend.txt\" đã được tạo thành công trong thư mục \"" << folderName << "\".\n";
+        // Viết dữ liệu vào file nếu cần
+        // outputFile << "Nội dung của file\n";
+        outputFile.close();
+    }
+    else {
+        std::cerr << "Không thể tạo file.\n";
+        return;
+    }
+
+    std::ofstream outputFile1(filePath1);
+
+    if (outputFile1.is_open()) {
+        std::cout << "File \"" << folderName1 << "_trainHis.txt\" đã được tạo thành công trong thư mục \"" << folderName << "\".\n";
+        // Viết dữ liệu vào file nếu cần
+        // outputFile << "Nội dung của file\n";
+        outputFile1.close();
+    }
+    else {
+        std::cerr << "Không thể tạo file.\n";
+        return;
+    }
 }
 
 
@@ -357,6 +402,7 @@ void handleClient(int clientSocket) {
                 fout << 0 << "\n";
                
                 fout.close();
+                createFolderAndFile(e);
             }
 
         }

@@ -73,6 +73,11 @@ public:
 		return text.str();
 	}
 
+	void resetText() {
+		text.str("");
+		return;
+	}
+
 	void drawTo(sf::RenderWindow& window) {
 		window.draw(textbox);
 	}
