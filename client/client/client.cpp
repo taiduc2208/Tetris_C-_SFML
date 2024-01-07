@@ -73,6 +73,8 @@ bool first = true;
 bool updateListRoom = false;
 bool hasLogin = false;
 std::string nameLogin;
+bool showRequest = false;
+int countRequest = 0;
 
 struct GameRoom {
 	std::string name;
@@ -301,7 +303,8 @@ int main() {
 	
 	std::vector<Room> buttonList;
 	std::vector<Room> textRank;
-
+	std::vector<Room> friendList;
+	std::vector<Room> requestList;
    
 	RenderWindow window(VideoMode(600, 600), "Login System made by Abu");
 	Texture t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12;
@@ -395,7 +398,8 @@ int main() {
 
 	
 
-	AddRoom addRoom("+", arial, 60, sf::Vector2f(500.0f, 50.0f));
+	AddRoom addRoom("+", arial, 40, sf::Vector2f(320.0f, 50.0f));
+	AddRoom showReq("0", arial, 40, sf::Vector2f(550.0f, 20.0f));
 
     while (window.isOpen()) {
         
@@ -650,9 +654,10 @@ int main() {
 							
 							if (searchButton.getGlobalBounds().contains(sf::Vector2f(e.mouseButton.x, e.mouseButton.y)))
 							{
-								sf::RenderWindow search(sf::VideoMode(600, 200), "SFML Search Bar");
+								sf::RenderWindow search(sf::VideoMode(450, 220), "SFML Search Bar");
 
 								SearchBar searchBar(search);
+								int typeResult = 0;
 
 								while (search.isOpen()) {
 									sf::Event event;
@@ -666,15 +671,40 @@ int main() {
 
 									search.clear();
 									searchBar.draw();
+									searchBar.drawResult(typeResult);
 									search.display();
 
 									/*if (searchBar.isTextInputActive()) {
 										std::cout << "Search Text: " << searchBar.getSearchText() << std::endl;
 									}*/
+									
 
 									if (searchBar.isFindButtonPressed()) {
 										
 										searchBar.setFindButtonPressed();
+
+										std::string inter = "SEARCH_F";
+										std::string message = inter + "||" + nameLogin + "||" + searchBar.getSearchText();
+										send(clientSocket, message.c_str(), message.size(), 0);
+
+										// Receive data from the server
+										char buffer[1024];
+										int bytesRead = recv(clientSocket, buffer, sizeof(buffer), 0);
+										if (bytesRead > 0) {
+											buffer[bytesRead] = '\0';
+				
+											std::string messFromServer = std::string(buffer, bytesRead);
+											struct demo messInfo = tokenize(messFromServer, "||");
+
+											if (messInfo.arr[0] == "+OK") {
+												std::cout << "Received from server: " << buffer << std::endl;
+												typeResult = 1;
+											}
+											else if (messInfo.arr[0] == "-NO") {
+												std::cout << "Received from server: " << buffer << std::endl;
+												typeResult = 2;
+											}
+										}
 
 										std::cout << "Find button pressed!" << std::endl;
 									}
@@ -688,9 +718,109 @@ int main() {
 							{
 								scene = 4;
 							}
+							if (showReq.isMouseOver(window))
+							{
+								sf::RenderWindow friendWindow(sf::VideoMode(400, 400), "Friend Request");
+
+								std::vector<Room> optionList;
+								optionList.emplace_back("Accept", arial, 20, sf::Vector2f(200.0f, 80.0f ));
+								optionList.emplace_back("Refused", arial, 20, sf::Vector2f(200.0f, 150.0f ));
+								bool checkShowOption = false;
+								bool buttonIsChoosen = false;
+
+								sf::Vector2f optionsPosition;
+								std::string temp_button;
+								while (friendWindow.isOpen()) {
+									sf::Event event;
+									while (friendWindow.pollEvent(event)) {
+										if (event.type == sf::Event::Closed) {
+											friendWindow.close();
+										}
+										else if (event.type == sf::Event::MouseButtonPressed) {
+											if (event.mouseButton.button == sf::Mouse::Right) {
+												// Kiểm tra xem click vào button nào
+												buttonIsChoosen = true;
+												for (auto& button : requestList) {
+
+													if (button.isMouseOver(friendWindow)) {
+														optionsPosition = button.getPosition();
+														checkShowOption = true;
+
+														temp_button = button.getString();
+														size_t colonPos = temp_button.find(':');
+														temp_button = temp_button.substr(0, colonPos);
+													}
+												}
+											}
+											if (event.mouseButton.button == sf::Mouse::Left) {
+												// Kiểm tra xem có nhấp vào tùy chọn nào không
+												
+												for (auto& button : optionList) {
+													if (button.isMouseOver(friendWindow)) {
+														std::cout << "click" + button.getString();
+														
+														std::string inter = "ACCEPT_F";
+														std::string message5;
+														if(button.getString() == "Accept")
+															message5 = inter + "||" + nameLogin + "||" + temp_button + "||1" ;
+														else
+															message5 = inter + "||" + nameLogin + "||" + temp_button + "||-1" ;
+														send(clientSocket, message5.c_str(), message5.size(), 0);
+														// Receive data from the server
+														char buffer5[1024];
+														int bytesRead5 = recv(clientSocket, buffer5, sizeof(buffer5), 0);
+														if (bytesRead5 > 0) {
+															buffer5[bytesRead5] = '\0';
+															std::cout << "Received from server: " << buffer5 << std::endl;
+															std::string messFromServer5 = std::string(buffer5, bytesRead5);
+															struct demo messInfo5 = tokenize(messFromServer5, "||");
+															if (messInfo5.arr[0] == "+OK") {
+																std::cout << "Xu ly thanh cong";
+																//requestList.erase(std::remove(requestList.begin(), requestList.end(), button), requestList.end());
+															}
+															else if (messInfo5.arr[0] == "-NO") {
+																std::cout << "Error friend handle\n";
+															}
+														}
+													}
+												}
+												
+												checkShowOption = false;
+												buttonIsChoosen = false;
+												
+											}
+										}
+									}
+									friendWindow.clear();
+									for (auto& button : requestList) {
+										sf::Color greyColor(128, 128, 128);
+										sf::Color greenColor(0, 255, 0);
+										sf::Color whiteColor(0, 0, 0);
+										if (button.getString().find("offline") != std::string::npos) {
+											button.setColor(greyColor);
+										}
+										else {
+											button.setColor(greenColor);
+										}
+										button.setBorderColor(whiteColor);
+										if (buttonIsChoosen) {
+											button.setChoosenColor();
+										}
+										
+										button.draw(friendWindow);
+									}
+									if (checkShowOption) {
+										for (auto& button12 : optionList) {
+											button12.draw(friendWindow);
+										}
+									}
+									friendWindow.display();
+								}
+
+							}
 							if (addRoom.isMouseOver(window)) {
 								
-								sf::RenderWindow Form2(sf::VideoMode(400, 200), "SFML Form");
+								sf::RenderWindow Form2(sf::VideoMode(400, 200), "Create Room");
 
 								Form form1(Form2);
 								
@@ -1179,14 +1309,14 @@ int main() {
 				
 				addRoom.draw(window);
 				
-
+				
 				if (!updateListRoom) {
-
+					countRequest = 0;
 					// send to server
 					// Send data to the server
 					updateListRoom = true;
 					std::string inter = "LIST";
-					std::string message = inter + "||-||-";
+					std::string message = inter + "||"+nameLogin+"||-";
 					send(clientSocket, message.c_str(), message.size(), 0);
 					// Receive data from the server
 					char buffer[1024];
@@ -1236,13 +1366,122 @@ int main() {
 							myMessageBox.draw(window);
 						}
 					}
+					
+					std::string inter32 = "LIST_F";
+					std::string message32 = inter32 + "||" + nameLogin + "||-";
+					send(clientSocket, message32.c_str(), message32.size(), 0);
+					// Receive data from the server
+					char buffer123[1024];
+					int bytesRead1 = recv(clientSocket, buffer123, sizeof(buffer123), 0);
+					if (bytesRead1 > 0) {
+						buffer[bytesRead1] = '\0';
+						std::string messFromServer32 = std::string(buffer123, bytesRead1);
+						struct demo messInfo32 = tokenize(messFromServer32, "||");
+						if (messInfo32.arr[0] == "+OK") {
+
+							// Receive data from the server
+							std::vector<Player> leaderboard = receiveRank(clientSocket);
+							
+							for (std::size_t i = 0; i < std::min(leaderboard.size(), static_cast<std::size_t>(10)); ++i) {
+								if (leaderboard[i].score == "false") {
+									friendList.emplace_back(leaderboard[i].name + ": " + "offline", arial, 20, sf::Vector2f(400.0f, 50.0f + i * (60.0f)));
+									
+								}
+								else
+									friendList.emplace_back(leaderboard[i].name + ": " + "online", arial, 20, sf::Vector2f(400.0f, 50.0f + i * (60.0f)));
+
+							}
+							for (const auto& button : friendList) {
+								button.draw(window);
+							}
+							
+
+
+						}
+						else if (messInfo32.arr[0] == "-NO") {
+							std::cout << "Khong co ban be";
+						}
+					}
+
+					inter32 = "LIST_R";
+					message32 = inter32 + "||" + nameLogin + "||-";
+					send(clientSocket, message32.c_str(), message32.size(), 0);
+
+					bytesRead1 = recv(clientSocket, buffer123, sizeof(buffer123), 0);
+					if (bytesRead1 > 0) {
+						buffer[bytesRead1] = '\0';
+						std::string messFromServer33 = std::string(buffer123, bytesRead1);
+						struct demo messInfo33 = tokenize(messFromServer33, "||");
+						if (messInfo33.arr[0] == "+OK") {
+
+							// Receive data from the server
+							std::vector<Player> leaderboard = receiveRank(clientSocket);
+
+							for (std::size_t i = 0; i < std::min(leaderboard.size(), static_cast<std::size_t>(10)); ++i) {
+								countRequest++;
+								if (leaderboard[i].score == "false") {
+									requestList.emplace_back(leaderboard[i].name + ": " + "offline", arial, 20, sf::Vector2f(50.0f, 50.0f + i * (60.0f)));
+								}
+								else
+									requestList.emplace_back(leaderboard[i].name + ": " + "online", arial, 20, sf::Vector2f(50.0f, 50.0f + i * (60.0f)));
+							}
+
+						}
+						else if (messInfo33.arr[0] == "-NO") {
+							std::cout << "Khong co ban be";
+						}
+					}
 				}
 
+				showReq.setText(std::to_string(countRequest));
+				showReq.draw(window);
 				// Draw all buttons in the list
-			
 				for (const auto& button : buttonList) {
 					button.draw(window);
 				}
+
+				// Create two vertices for the line
+				sf::Vertex line[] = {
+					sf::Vertex(sf::Vector2f(380, 0), sf::Color::White),
+					sf::Vertex(sf::Vector2f(380, 600), sf::Color::White)
+				};
+				window.draw(line, 2, sf::Lines);
+
+				for (auto& button : friendList) {
+					sf::Color greyColor(128, 128, 128);
+					sf::Color greenColor(0, 255, 0);
+					if (button.getString().find("offline") != std::string::npos) {
+						button.setColor(greyColor);
+					}
+					else {
+						button.setColor(greenColor);
+					}
+					button.draw(window);
+				}
+
+				
+
+
+				//// Create two vertices for the line
+				//sf::Vertex line1[] = {
+				//	sf::Vertex(sf::Vector2f(380, 420), sf::Color::White),
+				//	sf::Vertex(sf::Vector2f(800, 420), sf::Color::White)
+				//};
+				//window.draw(line1, 2, sf::Lines);
+
+				/*for (auto& button : requestList) {
+					sf::Color greyColor(128, 128, 128);
+					sf::Color greenColor(0, 255, 0);
+					if (button.getString().find("offline") != std::string::npos) {
+						button.setColor(greyColor);
+					}
+					else {
+						button.setColor(greenColor);
+					}
+					button.draw(window);
+				}*/
+
+
 				// Phần 3:  Button Back
 				
 				backButton.setPosition(0, 550);

@@ -28,9 +28,14 @@ public:
         findButton.setFillColor(sf::Color::Green);
 
         findText.setFont(font);
-        findText.setString("Find");
+        findText.setString("Add");
         findText.setCharacterSize(20);
         findText.setPosition(365, 55);
+
+        textResult.setFont(font);
+        textResult.setCharacterSize(20);
+        textResult.setPosition(20, 75);
+        
         
     }
 
@@ -40,6 +45,18 @@ public:
         window.draw(findButton);
         window.draw(findText);
         
+    }
+    void drawResult(int type) {
+        textResult.setString("");
+        if (type == 1) {
+            textResult.setString("Da gui loi moi ket ban");
+            textResult.setFillColor(sf::Color::Green);
+        }
+        else if(type == 2) {
+            textResult.setString("Ten user khong ton tai");
+            textResult.setFillColor(sf::Color::Red);
+        }
+        window.draw(textResult);
     }
     bool isTextInputActive() const {
         return textInputActive;
@@ -94,7 +111,7 @@ private:
     sf::Text textInput;
     sf::RectangleShape findButton;
     sf::Text findText;
-    
+    sf::Text textResult;
 
     bool textInputActive = false;
     bool findButtonPressed = false;

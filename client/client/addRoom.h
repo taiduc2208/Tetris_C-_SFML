@@ -16,8 +16,8 @@ public:
 
         // Set up border
         sf::FloatRect textBounds = text.getGlobalBounds();
-        border.setRadius(30.f);
-        border.setPosition(position.x - 10.0f, position.y - 10.0f);
+        border.setRadius(20.f);
+        border.setPosition(position.x - 8.0f, position.y+ 4.0f);
         border.setOutlineThickness(2.0f);
         border.setOutlineColor(sf::Color::White);
     }
@@ -25,6 +25,9 @@ public:
     void draw(sf::RenderWindow& window) const {
         window.draw(border);
         window.draw(text);
+    }
+    void setText(std::string str){
+        text.setString(str);
     }
     bool isMouseOver(const sf::RenderWindow& window) const {
         sf::Vector2i mousePosition = sf::Mouse::getPosition(window);

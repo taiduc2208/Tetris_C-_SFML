@@ -77,7 +77,8 @@ void createFolderAndFile(const std::string& folderName1) {
     // Tạo file mới trong thư mục vừa tạo
     std::string filePath = folderName + "/" + folderName1 + "_friend.txt";
     std::string filePath1 = folderName + "/" + folderName1 + "_trainHis.txt";
-    std::cout << filePath;
+    std::string filePath2 = folderName + "/" + folderName1 + "_request.txt";
+   
     std::ofstream outputFile(filePath);
    
     if (outputFile.is_open()) {
@@ -103,6 +104,70 @@ void createFolderAndFile(const std::string& folderName1) {
         std::cerr << "Không thể tạo file.\n";
         return;
     }
+    std::ofstream outputFile2(filePath2);
+
+    if (outputFile2.is_open()) {
+        std::cout << "File \"" << folderName1 << "_request.txt\" đã được tạo thành công trong thư mục \"" << folderName << "\".\n";
+        // Viết dữ liệu vào file nếu cần
+        // outputFile << "Nội dung của file\n";
+        outputFile2.close();
+    }
+    else {
+        std::cerr << "Không thể tạo file.\n";
+        return;
+    }
+}
+
+std::vector<std::string> getLine(const std::string& filename) {
+    std::ifstream inputFile(filename);
+    if (!inputFile.is_open()) {
+        std::cerr << "Cannot open file: " << filename << std::endl;
+        return {};
+    }
+
+    // Đọc dữ liệu từ file vào vector
+    std::vector<std::string> lines;
+    std::string line;
+    while (std::getline(inputFile, line)) {
+        lines.push_back(line);
+    }
+
+    inputFile.close();
+    return lines;
+}
+
+bool removeLineFromFile(const std::string& filename, const std::string& targetString) {
+    std::ifstream inputFile(filename);
+    if (!inputFile.is_open()) {
+        std::cerr << "Cannot open file: " << filename << std::endl;
+        return false;
+    }
+
+    // Đọc dữ liệu từ file vào vector
+    std::vector<std::string> lines;
+    std::string line;
+    while (std::getline(inputFile, line)) {
+        if (line != targetString) {
+            lines.push_back(line);
+        }
+    }
+
+    inputFile.close();
+
+    // Ghi lại dữ liệu vào file
+    std::ofstream outputFile(filename);
+    if (!outputFile.is_open()) {
+        std::cerr << "Cannot open file for writing: " << filename << std::endl;
+        return false;
+    }
+
+    for (const auto& line : lines) {
+        outputFile << line << std::endl;
+    }
+
+    outputFile.close();
+
+    return true;
 }
 
 
@@ -126,23 +191,6 @@ void removeRoomBySocket(int socketToRemove) {
     else {
         std::cout << "not found socket: " << socketToRemove << "\n";
     }
-}
-// Hàm gửi dữ liệu qua socket
-bool sendVector2D(SOCKET socket, const std::vector<std::vector<std::uint32_t>>& data) {
-    std::size_t rows = 20;
-    std::size_t cols = 10;
-
-    // Gửi dữ liệu của mảng
-    for (std::size_t i = 0; i < rows; ++i) {
-        for (std::size_t j = 0; j < cols; ++j) {
-            std::uint32_t value = data[i][j];
-            if (send(socket, reinterpret_cast<const char*>(&value), sizeof(value), 0) == -1) {
-                return false;
-            }
-        }
-    }
-
-    return true;
 }
 
 
@@ -203,29 +251,6 @@ void updateFieldInFile(std::string& emailToSearch, int fieldIndex, std::string& 
     file.close();
 }
 
-std::vector<std::vector<std::uint32_t>> recvVector2D(SOCKET socket) {
-    std::size_t rows, cols;
-    rows = 20; cols = 10;
-    std::vector<std::vector<std::uint32_t>> data;
-
-    data.resize(rows);
-    for (std::size_t i{}; i < data.size(); ++i) {
-        data[i].resize(cols);
-    }
-
-    for (std::size_t i = 0; i < rows; ++i) {
-        for (std::size_t j = 0; j < cols; ++j) {
-            std::uint32_t value;
-            if (recv(socket, reinterpret_cast<char*>(&value), sizeof(value), 0) == -1) {
-                std::cerr << "Error receiving data element" << std::endl;
-                return data;
-            }
-            data[i][j] = value;
-        }
-    }
-
-    return data;
-}
 
 
 void sendGameRooms(SOCKET clientSocket, const std::vector<room>& gameRooms) {
@@ -270,6 +295,27 @@ void sendGameRank(SOCKET clientSocket, const std::vector<account>& accListRank) 
     }
 }
 
+void sendListFriend(SOCKET clientSocket, const std::vector<account>& listFriend) {
+    // Gửi số lượng phòng trước
+    int numRooms12 = listFriend.size();
+    send(clientSocket, reinterpret_cast<char*>(&numRooms12), sizeof(int), 0);
+
+    // Gửi thông tin từng acc
+    for (const auto& room2 : listFriend) {
+        // Gửi tên acc
+        int nameSize1 = room2.email.size();
+        send(clientSocket, reinterpret_cast<char*>(&nameSize1), sizeof(int), 0);
+        send(clientSocket, room2.email.c_str(), nameSize1, 0);
+        std::cout << "send" + room2.email;
+        // Gửi tên acc
+        int trainSize1 = room2.isLoggedIn.size();
+        send(clientSocket, reinterpret_cast<char*>(&trainSize1), sizeof(int), 0);
+        send(clientSocket, room2.isLoggedIn.c_str(), trainSize1, 0);
+
+        std::cout << "---" + room2.isLoggedIn + "\n";
+    }
+}
+
 struct demoAcc input()
 {
     account acc[100];
@@ -290,6 +336,32 @@ struct demoAcc input()
     fin.close();
     return accInfo;
 }
+
+
+std::vector<account> inputCheck(std::vector<std::string> listname)
+{
+    account acc[100];
+    info = 1;
+    std::ifstream fin("clientList.txt", std::ios::in | std::ios::out);
+    std::vector<account> friendList;
+    while (fin >> acc[info].email)
+    {
+        fin >> acc[info].password;
+        fin >> acc[info].isLoggedIn;
+        fin >> acc[info].playTrain;
+        fin >> acc[info].playSolo;
+
+        acc[info].password = "";
+        if (std::find(listname.begin(), listname.end(), acc[info].email) != listname.end()) {
+            friendList.push_back(acc[info]);
+        }
+        //std::cout << acc[info].email << "---" << acc[info].password;
+        info++;
+    }
+    fin.close();
+    return friendList;
+}
+
 
  struct demo tokenize(std::string s, std::string del = " ")
 {
@@ -406,6 +478,7 @@ void handleClient(int clientSocket) {
             }
 
         }
+        // choi che do luyen tap
         else if (clientInfo.arr[0] == "TRAIN") {
             std::string e, p;
             e = clientInfo.arr[1];
@@ -437,6 +510,7 @@ void handleClient(int clientSocket) {
 
 
         }
+        // tao phong choi moi
         else if (clientInfo.arr[0] == "ADD_ROOM") {
             std::string e, p;
             e = clientInfo.arr[1];
@@ -464,6 +538,7 @@ void handleClient(int clientSocket) {
             
 
         }
+        // tham gia phong
         else if (clientInfo.arr[0] == "JOIN_ROOM") {
             std::string e, p;
             e = clientInfo.arr[1];
@@ -497,6 +572,7 @@ void handleClient(int clientSocket) {
 
 
         }
+        // xem danh sach cac phong choi
         else if (clientInfo.arr[0] == "LIST") {
             // Gửi số lượng phòng trước
                 // Thêm phòng game
@@ -534,7 +610,7 @@ void handleClient(int clientSocket) {
                 }
             }
         }
-
+        // thong bao roi` game
         else if (clientInfo.arr[0] == "OUTGAME") {
 
             std::string e, p;
@@ -553,6 +629,98 @@ void handleClient(int clientSocket) {
                 }
             }
         }
+        // gui loi moi ket ban
+        else if (clientInfo.arr[0] == "SEARCH_F") {
+
+            std::string e, p;
+            p = clientInfo.arr[1];
+            e = clientInfo.arr[2];
+            int checkSuccess = 0;
+            struct demoAcc checkLogin = input();
+
+            for (int j = 1; j <= info; j++)
+            {
+                // std::cout << checkLogin.arr[j].email << "---" << checkLogin.arr[j].password << std::endl;
+                if (e == checkLogin.arr[j].email)
+                {
+                    send(clientSocket, "+OK||0", 7, 0);
+                    checkSuccess++;
+
+                    std::ofstream fout("client/" + e + "/" + e + "_request.txt", std::ios::app);
+                    fout << p << "\n";
+                    fout.close();
+
+                    break;
+                }
+
+            }
+            if (checkSuccess == 0) {
+                send(clientSocket, "-NO||0", 7, 0);
+                
+            }
+
+        }
+
+        // dong y ket ban
+        else if (clientInfo.arr[0] == "ACCEPT_F") {
+            
+            std::string check = clientInfo.arr[3];
+            std::string nameLogin = clientInfo.arr[1];
+            std::string nameFriend = clientInfo.arr[2];
+            if (check == "1") {
+                std::ofstream fout("client/" + nameLogin + "/" + nameLogin + "_friend.txt", std::ios::app);
+                fout << nameFriend << "\n";
+                fout.close();
+
+                std::ofstream fout1("client/" + nameFriend + "/" + nameFriend + "_friend.txt", std::ios::app);
+                fout1 << nameLogin << "\n";
+                fout1.close();
+            }
+            removeLineFromFile("client/" + nameLogin + "/" + nameLogin + "_request.txt", nameFriend);
+            send(clientSocket, "+OK||6", 7, 0);
+        }
+
+        // xem danh sach yeu cau ket ban
+        else if (clientInfo.arr[0] == "LIST_R") {
+            std::string nameClient;
+            std::vector<std::string> friendList;
+            std::vector<account> friendL;
+            nameClient = clientInfo.arr[1];
+
+            friendList = getLine("client/" + nameClient + "/" + nameClient + "_request.txt");
+            friendL = inputCheck(friendList);
+            if (friendL.size() > 0) {
+                std::cout << "send friend list";
+                send(clientSocket, "+OK||6", 7, 0);
+                sendListFriend(clientSocket, friendL);
+            }
+            else {
+                send(clientSocket, "-NO||-8", 7, 0);
+            }
+        }
+
+        // xem danh sach ban be va trang thai
+        else if (clientInfo.arr[0] == "LIST_F") {
+
+            std::string nameClient;
+            std::vector<std::string> friendList;
+            std::vector<account> friendL;
+            nameClient = clientInfo.arr[1];
+
+            friendList = getLine("client/" + nameClient + "/" + nameClient + "_friend.txt");
+            friendL = inputCheck(friendList);
+            if (friendL.size() > 0) {
+                std::cout << "send friend list";
+                send(clientSocket, "+OK||6", 7, 0);
+                sendListFriend(clientSocket, friendL);
+            }
+            else {
+                send(clientSocket, "-NO||-8", 7, 0);
+            }
+            
+        }
+
+        // hien diem bang xep hang
         else if (clientInfo.arr[0] == "RANK") {
 
             struct demoAcc accRank = input();
