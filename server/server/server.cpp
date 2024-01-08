@@ -136,6 +136,31 @@ std::vector<std::string> getLine(const std::string& filename) {
     return lines;
 }
 
+std::string getLineString(const std::string& filename) {
+    std::ifstream inputFile(filename);
+    if (!inputFile.is_open()) {
+        std::cerr << "Cannot open file: " << filename << std::endl;
+        return {};
+    }
+    int checkCount = 0;
+    // Đọc dữ liệu từ file vào vector
+    std::string lines1 = "";
+    std::string line1;
+    while (std::getline(inputFile, line1)) {
+        checkCount++;
+        if (checkCount < 10) {
+            lines1 += line1;
+            lines1 += "|r|r|";
+        }
+        else if (checkCount == 10) {
+            lines1 += line1;
+        }
+    }
+
+    inputFile.close();
+    return lines1;
+}
+
 bool removeLineFromFile(const std::string& filename, const std::string& targetString) {
     std::ifstream inputFile(filename);
     if (!inputFile.is_open()) {
@@ -499,6 +524,11 @@ void handleClient(int clientSocket) {
                             str1.erase(std::remove_if(str1.begin(), str1.end(), [](unsigned char x) { return std::isspace(x); }), str1.end());
                             std::string newValue = std::to_string(std::stoi(str1) + 1);
                             updateFieldInFile(p, 4, newValue);
+
+                            std::ofstream fout1his("client/" + p + "/" + p + "_trainHis.txt", std::ios::app);
+                            fout1his << e << "\n";
+                            fout1his.close();
+
                             break;
                         }
 
@@ -719,6 +749,20 @@ void handleClient(int clientSocket) {
             }
             
         }
+        else if (clientInfo.arr[0] == "HISTORY") {
+
+            std::string nameClient;
+            std::string listHis;
+            std::string interHis = "+OK|r|r|";
+            nameClient = clientInfo.arr[1];
+
+            listHis = getLineString("client/" + nameClient + "/" + nameClient + "_trainHis.txt");
+            listHis = interHis + listHis;
+            std::cout << listHis << "\n";
+            send(clientSocket, listHis.c_str(), listHis.size(), 0);
+
+        }
+        
 
         // hien diem bang xep hang
         else if (clientInfo.arr[0] == "RANK") {

@@ -303,6 +303,7 @@ int main() {
 	
 	std::vector<Room> buttonList;
 	std::vector<Room> textRank;
+	std::vector<Room> historyFight;
 	std::vector<Room> friendList;
 	std::vector<Room> requestList;
    
@@ -368,6 +369,25 @@ int main() {
 	// Tạo các đối tượng nút nhỏ
 	sf::CircleShape smallButton1(30.f);
 	sf::CircleShape smallButton2(30.f);
+
+	// Tạo đối tượng Texture và Sprite cho hình ảnh
+	sf::Texture rankking;
+	if (!rankking.loadFromFile("images/rankking.png")) {
+		// Xử lý lỗi nếu không thể tải ảnh
+		return -1;
+	}
+
+	sf::Sprite rankSprite(rankking);
+
+	// Tạo đối tượng Texture và Sprite cho hình ảnh
+	sf::Texture userIcon;
+	if (!userIcon.loadFromFile("images/userIcon.png")) {
+		// Xử lý lỗi nếu không thể tải ảnh
+		return -1;
+	}
+
+	sf::Sprite UserSprite(userIcon);
+
 
 
 	sf::RectangleShape backButton(sf::Vector2f(100, 50));
@@ -634,10 +654,49 @@ int main() {
 								window.clear();
 								for (std::size_t i = 0; i < std::min(leaderboard.size(), static_cast<std::size_t>(10)); ++i) {
 
-									textRank.emplace_back(std::to_string(i + 1) + ". " + leaderboard[i].name + ": " + (leaderboard[i].score), arial, 20, sf::Vector2f(100.0f, 150.0f + i * (60.0f)));;
+									textRank.emplace_back(std::to_string(i + 1) + ". " + leaderboard[i].name + ": \t" + (leaderboard[i].score), arial, 20, sf::Vector2f(100.0f, 150.0f + i * (60.0f)));;
 									
 								}
 								scene = 15;
+
+							}
+
+							if (smallButton2.getGlobalBounds().contains(sf::Vector2f(e.mouseButton.x, e.mouseButton.y)))
+							{
+
+								// Xử lý sự kiện cho nút Rankking ở đây
+								// Send data to the server
+								std::string interhis = "HISTORY";
+								std::string messagehis = interhis + "||"+ nameLogin +"||-";
+								send(clientSocket, messagehis.c_str(), messagehis.size(), 0);
+
+								// Receive data from the server
+								char bufferhis[1024];
+								int bytesReadhis = recv(clientSocket, bufferhis, sizeof(bufferhis), 0);
+								if (bytesReadhis > 0) {
+									bufferhis[bytesReadhis] = '\0';
+									std::string messFromServerHis = std::string(bufferhis, bytesReadhis);
+									struct demo messInfoHis = tokenize(messFromServerHis, "|r|r|");
+									if (messInfoHis.arr[0] == "+OK") {
+										std::cout << "OK\n";
+										for (int i = 1; i < 9; ++i) {
+											
+											if (!messInfoHis.arr[i].empty()) {
+												if (i >= 6) {
+													historyFight.emplace_back(std::to_string(i) + ".\t" + messInfoHis.arr[i], arial, 20, sf::Vector2f(100.0f, 50.0f + i * (40.0f)));
+												}
+												else {
+													historyFight.emplace_back(std::to_string(i) + ".\t" + messInfoHis.arr[i], arial, 20, sf::Vector2f(250.0f, 50.0f + i * (40.0f)));
+												}
+											}
+										}
+									}
+									else if (messInfoHis.arr[0] == "-NO") {
+										std::cout << "NO\n";
+									}
+								}
+								
+								scene = 16;
 
 							}
 
@@ -1034,6 +1093,14 @@ int main() {
 							}
 							
 						}
+						if (scene == 16) {
+
+							if (backButton.getGlobalBounds().contains(sf::Vector2f(e.mouseButton.x, e.mouseButton.y)))
+							{
+								scene = 4;
+							}
+
+						}
 						if (scene == 5) {
 
 							if (backButton.getGlobalBounds().contains(sf::Vector2f(e.mouseButton.x, e.mouseButton.y)))
@@ -1261,8 +1328,17 @@ int main() {
 
 				// bottom frame 
 				
-				smallButton1.setPosition(bottomRect.left + 50.f, bottomRect.top + 50.f);
-				smallButton2.setPosition(bottomRect.left + 280.f, bottomRect.top + 50.f);
+				smallButton1.setPosition(bottomRect.left + 50.f, bottomRect.top + 10.f);
+
+				
+				rankSprite.setPosition(smallButton1.getPosition().x - 3.0f, smallButton1.getPosition().y -2.2f);
+			    rankSprite.setScale(0.3f, 0.3f);
+
+				smallButton2.setPosition(bottomRect.left + 280.f, bottomRect.top + 10.f);
+
+				
+				UserSprite.setPosition(smallButton2.getPosition().x - 2.0f, smallButton2.getPosition().y - 2.0f);
+				UserSprite.setScale(0.3f, 0.3f);
 
 				// Xóa cửa sổ để vẽ lại
 				window.clear();
@@ -1285,7 +1361,9 @@ int main() {
 
 
 				window.draw(smallButton1);
+				window.draw(rankSprite);
 				window.draw(smallButton2);
+				window.draw(UserSprite);
 			}
 			if (scene == 5)
 			{
@@ -1522,7 +1600,8 @@ int main() {
 			}
 			if (scene == 15)
 			{
-				backText.setPosition(10, 560);
+				backText.setPosition(22, 560);
+				backButton.setPosition(10, 550);
 				window.draw(backButton);
 				window.draw(logoSprite);
 
@@ -1531,6 +1610,23 @@ int main() {
 				}
 
 				
+				window.draw(backText);
+			}
+
+			if (scene == 16)
+			{
+				backText.setPosition(22, 560);
+				backButton.setPosition(10, 550);
+				window.draw(backButton);
+				window.draw(logoSprite);
+
+
+
+				for (const auto& button : historyFight) {
+					button.draw(window);
+				}
+
+
 				window.draw(backText);
 			}
         window.display();
