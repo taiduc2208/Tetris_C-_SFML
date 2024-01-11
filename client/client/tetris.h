@@ -20,16 +20,16 @@ class Tetris {
 
     struct Coords {
         std::uint32_t x, y;
-    } z[squares], k[squares];
+    } z[squares], k[squares], predict[squares];
 
     std::shared_ptr<sf::RenderWindow> window;
     sf::Texture tiles, bg;
-    std::shared_ptr<sf::Sprite> sprite, background;
+    std::shared_ptr<sf::Sprite> sprite, background, predictAbu;
     sf::Clock clock;
     sf::Font  font;
     sf::Text txtScore, txtGameOver;
 
-    int dirx, color, score;
+    int dirx, color, score, level;
     bool rotate, gameover, sendData;
     float timercount, delay;
     SOCKET gameSock;
@@ -47,7 +47,7 @@ protected:
     std::function<void(int)> gameOverCallback;
 
 public:
-    Tetris(SOCKET socket, std::string name);
+    Tetris(SOCKET socket, std::string name, int levelTetris);
     ~Tetris();
     void run();
     void setGameOverCallback(std::function<void(int)> callback);

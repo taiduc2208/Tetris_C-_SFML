@@ -20,6 +20,7 @@
 #include <algorithm>
 #include <string.h>
 #include "find.h"
+#include <chrono>
 
 
 
@@ -76,23 +77,51 @@ std::string nameLogin;
 bool showRequest = false;
 int countRequest = 0;
 
+
+
 struct GameRoom {
 	std::string name;
 	int number;
 	bool status;
 	std::vector<int> sockets;
+	std::string user1;
+	std::string user2;
 };
 
 GameRoom myRoom;
+std::vector<GameRoom> receivedGameRooms1;
 
 struct Player {
 	std::string name;
 	std::string score;
 };
 
+struct demo
+{
+	//array declared inside structure
+	std::string arr[100];
+};
+
+
+
+struct demo tokenize(std::string s, std::string del = " ")
+{
+	struct demo result;
+	int n = 0;
+	int start, end = -1 * del.size();
+	do {
+		start = end + del.size();
+		end = s.find(del, start);
+		result.arr[n] = s.substr(start, end - start);
+		n++;
+	} while (end != -1);
+	return result;
+}
+
 std::vector<GameRoom> receiveGameRooms(SOCKET serverSocket) {
 	std::vector<GameRoom> receivedGameRooms;
 
+	
 	// Nhận số lượng phòng
 	int numRooms;
 	recv(serverSocket, reinterpret_cast<char*>(&numRooms), sizeof(int), 0);
@@ -107,6 +136,13 @@ std::vector<GameRoom> receiveGameRooms(SOCKET serverSocket) {
 		char nameBuffer[256];  // Điều này là giả định, bạn có thể sử dụng động để tránh giới hạn kích thước cứng
 		recv(serverSocket, nameBuffer, nameSize, 0);
 		room.name = std::string(nameBuffer, nameSize);
+
+		struct demo nameRecv = tokenize(room.name, "||");
+		room.name = nameRecv.arr[0];
+		room.user1 = nameRecv.arr[1];
+		room.user2 = nameRecv.arr[2];
+
+
 		//std::cout << room.name << "\n";
 		// Nhận số lượng sockets trong phòng
 		int numSockets;
@@ -166,55 +202,6 @@ std::vector<Player> receiveRank(SOCKET serverSocket) {
 	return receivedRank;
 }
 
-struct demo
-{
-	//array declared inside structure
-	std::string arr[100];
-};
-
-struct demo tokenize(std::string s, std::string del = " ")
-{
-	struct demo result;
-	int n = 0;
-	int start, end = -1 * del.size();
-	do {
-		start = end + del.size();
-		end = s.find(del, start);
-		result.arr[n] = s.substr(start, end - start);
-		n++;
-	} while (end != -1);
-	return result;
-}
-void handleClient(SOCKET clientSocket) {
-	char buffer[BUFFER_SIZE];
-	recv(clientSocket, buffer, BUFFER_SIZE, 0);
-	std::cout << "Received data from client: " << buffer << std::endl;
-	closesocket(clientSocket);
-}
-
-std::vector<std::vector<std::uint32_t>> recvVector2D(SOCKET socket) {
-	std::size_t rows, cols;
-	rows = 20; cols = 10;
-	std::vector<std::vector<std::uint32_t>> data;
-
-	data.resize(rows);
-	for (std::size_t i{}; i < data.size(); ++i) {
-		data[i].resize(cols);
-	}
-	
-	for (std::size_t i = 0; i < rows; ++i) {
-		for (std::size_t j = 0; j < cols; ++j) {
-			std::uint32_t value;
-			if (recv(socket, reinterpret_cast<char*>(&value), sizeof(value), 0) == -1) {
-				std::cerr << "Error receiving data element" << std::endl;
-				return data;
-			}
-			data[i][j] = value;
-		}
-	}
-
-	return data;
-}
 
 
 
@@ -306,6 +293,10 @@ int main() {
 	std::vector<Room> historyFight;
 	std::vector<Room> friendList;
 	std::vector<Room> requestList;
+
+	
+
+
    
 	RenderWindow window(VideoMode(600, 600), "Login System made by Abu");
 	Texture t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12;
@@ -338,6 +329,11 @@ int main() {
 
 	Font arial;
 	arial.loadFromFile("font/arial.ttf");
+
+	std::vector<Room> buttonOptionLevel;
+	buttonOptionLevel.emplace_back("Easy", arial, 20, sf::Vector2f(180.0f, 200.0f));
+	buttonOptionLevel.emplace_back("Normal", arial, 20, sf::Vector2f(180.0f, 300.0f ));
+	buttonOptionLevel.emplace_back("Hard", arial, 20, sf::Vector2f(180.0f, 400.0f));
 
 	
 	Textbox textLoginEmail(30, Color::White, false);
@@ -602,8 +598,61 @@ int main() {
 								window.clear();
 								window.setVisible(false);
 
+								
+								
+								int levelChooseAbu = 0;
+								sf::RenderWindow levelWindow(sf::VideoMode(360, 720), "Choose Level");
+
+								sf::Text leveltext;
+								leveltext.setFont(arial);
+								leveltext.setCharacterSize(36);
+								leveltext.setFillColor(sf::Color::White);
+								leveltext.setPosition(180, 50);
+								leveltext.setString("Level");
+
+								// Vòng lặp chính
+								while (levelWindow.isOpen()) {
+									sf::Event event;
+									while (levelWindow.pollEvent(event)) {
+										if (event.type == sf::Event::Closed) {
+											levelWindow.close();
+										}
+										if (event.type == Event::MouseButtonPressed)
+										{
+											if (event.key.code == Mouse::Left)
+											{
+												for (auto& button : buttonOptionLevel) {
+
+													if (button.isMouseOver(levelWindow)) {
+
+														if (button.getString().find("Easy") != std::string::npos) {
+															levelChooseAbu = 0;
+														}else if (button.getString().find("Normal") != std::string::npos) {
+															levelChooseAbu = 5;
+														}
+														else if (button.getString().find("Hard") != std::string::npos) {
+															levelChooseAbu = 10;
+														}
+														levelWindow.close();
+													}
+												}
+											}
+										}
+									}
+
+									levelWindow.clear();
+
+									for (const auto& button : buttonOptionLevel) {
+										button.draw(levelWindow);
+									}
+
+									levelWindow.draw(leveltext);
+
+									levelWindow.display();
+								}
+
 								std::srand(std::time(0));
-								auto tetris = std::make_shared<Tetris>(clientSocket, nameLogin);
+								auto tetris = std::make_shared<Tetris>(clientSocket, nameLogin, levelChooseAbu);
 								bool sendData1 = false;
 								std::stringstream stream;
 								std::string str_temp;
@@ -902,7 +951,7 @@ int main() {
 
 										std::string inter = "ADD_ROOM";
 										
-										std::string message = inter + "||" + name + "||" + password;
+										std::string message = inter + "||" + name + "||" + password + "||" + nameLogin;
 										send(clientSocket, message.c_str(), message.size(), 0);
 										// Receive data from the server
 										char buffer[1024];
@@ -914,6 +963,7 @@ int main() {
 											struct demo messInfo = tokenize(messFromServer, "||");
 											if (messInfo.arr[0] == "+OK") {
 												myRoom.name = name;
+												myRoom.user1 = nameLogin;
 												scene = 7;
 											}
 											else if (messInfo.arr[0] == "-NO") {
@@ -958,7 +1008,7 @@ int main() {
 
 											std::string inter = "JOIN_ROOM";
 
-											std::string message = inter + "||" + name + "||" + password;
+											std::string message = inter + "||" + name + "||" + password + "||" + nameLogin;
 											send(clientSocket, message.c_str(), message.size(), 0);
 											// Receive data from the server
 											char buffer[1024];
@@ -969,7 +1019,15 @@ int main() {
 												std::string messFromServer = std::string(buffer, bytesRead);
 												struct demo messInfo = tokenize(messFromServer, "||");
 												if (messInfo.arr[0] == "+OK") {
-													myRoom.name = name;
+													//myRoom.name = name;
+													for (const auto& room : receivedGameRooms1) {
+														if (name == room.name) {
+															myRoom = room;
+															if (myRoom.user1 != nameLogin) myRoom.user2 = nameLogin;
+															break;
+														}
+
+													}
 													scene = stoi(messInfo.arr[1]);
 												}
 												else if (messInfo.arr[0] == "-NO") {
@@ -1010,6 +1068,49 @@ int main() {
 
 								window.clear();
 								
+								sf::RenderWindow windowCount(sf::VideoMode(600, 200), "Countdown Timer");
+								// Thiết lập văn bản
+								sf::Text countdownText;
+								countdownText.setFont(arial);
+								countdownText.setCharacterSize(48);
+								countdownText.setFillColor(sf::Color::White);
+								countdownText.setPosition(300, 100);
+
+								// Đặt thời gian countdown (giây)
+								int countdownSeconds = 3;
+								// Vòng lặp chính
+								while (windowCount.isOpen()) {
+									sf::Event event;
+									while (windowCount.pollEvent(event)) {
+										if (event.type == sf::Event::Closed) {
+											windowCount.close();
+										}
+									}
+
+									// Giảm thời gian countdown mỗi giây
+									countdownSeconds--;
+
+									// Hiển thị thời gian countdown trên cửa sổ
+									countdownText.setString(std::to_string(countdownSeconds));
+
+									// Xóa nền cửa sổ
+									windowCount.clear();
+
+									// Vẽ văn bản lên cửa sổ
+									windowCount.draw(countdownText);
+
+									// Hiển thị nội dung lên màn hình
+									windowCount.display();
+
+									// Dừng một giây (1000 ms)
+									std::this_thread::sleep_for(std::chrono::seconds(1));
+
+									// Kiểm tra nếu countdown đã kết thúc
+									if (countdownSeconds <= 0) {
+										windowCount.close();
+									}
+								}
+
 
 								std::srand(std::time(0));
 								auto tetris = std::make_shared<Tetris2>(clientSocket, myRoom.name, nameLogin);
@@ -1054,7 +1155,48 @@ int main() {
 									struct demo messInfo = tokenize(messFromServer, "||");
 									if (messInfo.arr[0] == "+OK") {
 										
-										
+										sf::RenderWindow windowCount1(sf::VideoMode(600, 200), "Countdown Timer");
+										// Thiết lập văn bản
+										sf::Text countdownText1;
+										countdownText1.setFont(arial);
+										countdownText1.setCharacterSize(48);
+										countdownText1.setFillColor(sf::Color::White);
+										countdownText1.setPosition(300, 100);
+
+										// Đặt thời gian countdown (giây)
+										int countdownSeconds1 = 3;
+										// Vòng lặp chính
+										while (windowCount1.isOpen()) {
+											sf::Event event;
+											while (windowCount1.pollEvent(event)) {
+												if (event.type == sf::Event::Closed) {
+													windowCount1.close();
+												}
+											}
+
+											// Giảm thời gian countdown mỗi giây
+											countdownSeconds1--;
+
+											// Hiển thị thời gian countdown trên cửa sổ
+											countdownText1.setString(std::to_string(countdownSeconds1));
+
+											// Xóa nền cửa sổ
+											windowCount1.clear();
+
+											// Vẽ văn bản lên cửa sổ
+											windowCount1.draw(countdownText1);
+
+											// Hiển thị nội dung lên màn hình
+											windowCount1.display();
+
+											// Dừng một giây (1000 ms)
+											std::this_thread::sleep_for(std::chrono::seconds(1));
+
+											// Kiểm tra nếu countdown đã kết thúc
+											if (countdownSeconds1 <= 0) {
+												windowCount1.close();
+											}
+										}
 										bool sendData3 = false;
 										std::srand(std::time(0));
 										auto tetris = std::make_shared<Tetris2>(clientSocket, myRoom.name, nameLogin);
@@ -1407,20 +1549,20 @@ int main() {
 						if (messInfo.arr[0] == "+OK") {
 							
 							// Nhận vector từ server
-							std::vector<GameRoom> receivedGameRooms = receiveGameRooms(clientSocket);
+							receivedGameRooms1 = receiveGameRooms(clientSocket);
 							// Phần 2: Hiển thị danh sách hoặc form tạo phòng
 
 							
 							// Hiển thị thông tin các phòng
 							buttonList.clear();
-							for (int i = 0; i < receivedGameRooms.size(); ++i) {
+							for (int i = 0; i < receivedGameRooms1.size(); ++i) {
 								// Add buttons to the list
-								buttonList.emplace_back(receivedGameRooms[i].name, arial, 20, sf::Vector2f(100.0f, 150.0f + i*(60.0f)));
+								buttonList.emplace_back(receivedGameRooms1[i].name, arial, 20, sf::Vector2f(100.0f, 150.0f + i*(60.0f)));
 								//std::cout << receivedGameRooms[i].name << " -- " << receivedGameRooms[i].number << "\n";
 								
-								for (const auto& k : receivedGameRooms[i].sockets) {
-									if (myRoom.name == receivedGameRooms[i].name) {
-										myRoom = receivedGameRooms[i];
+								for (const auto& k : receivedGameRooms1[i].sockets) {
+									if (myRoom.name == receivedGameRooms1[i].name) {
+										myRoom = receivedGameRooms1[i];
 										std::cout << myRoom.name << myRoom.status << "\n";
 									}
 									std::cout << k << "--";
@@ -1577,9 +1719,25 @@ int main() {
 				backText.setPosition(10, 560);
 				window.draw(logoSprite);
 
+				sf::Text user1, user2;
+				user1.setFont(arial);
+				user1.setCharacterSize(36);
+				user1.setFillColor(sf::Color::White);
+				user1.setPosition(250, 250);
+				user1.setString("User1:\t" + myRoom.user1);
+
+				user2.setFont(arial);
+				user2.setCharacterSize(36);
+				user2.setFillColor(sf::Color::White);
+				user2.setPosition(250, 320);
+				user2.setString("User2:\t" + myRoom.user2);
+
+				window.draw(user1);
+				
 
 				if (myRoom.status) {
 					playButton.setPosition(50, 450);
+					window.draw(user2);
 					window.draw(playButton);
 				}
 				window.draw(backButton);
@@ -1592,8 +1750,21 @@ int main() {
 
 				window.draw(logoSprite);
 
+				sf::Text user1, user2;
+				user1.setFont(arial);
+				user1.setCharacterSize(36);
+				user1.setFillColor(sf::Color::White);
+				user1.setPosition(250, 250);
+				user1.setString("User1:\t" + myRoom.user1);
 
+				user2.setFont(arial);
+				user2.setCharacterSize(36);
+				user2.setFillColor(sf::Color::White);
+				user2.setPosition(250, 320);
+				user2.setString("User2:\t" + myRoom.user2);
 
+				window.draw(user1);
+				window.draw(user2);
 				window.draw(readyButton);
 				window.draw(backButton);
 				window.draw(backText);

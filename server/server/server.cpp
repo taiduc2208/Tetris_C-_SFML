@@ -28,6 +28,8 @@ struct room {
     std::vector<int> sockets;
     int score1 = -1;
     int score2 = -1;
+    std::string user1 = "";
+    std::string user2 = "";
 };
 
 std::vector<room> gameRooms;
@@ -278,17 +280,18 @@ void updateFieldInFile(std::string& emailToSearch, int fieldIndex, std::string& 
 
 
 
-void sendGameRooms(SOCKET clientSocket, const std::vector<room>& gameRooms) {
+void sendGameRooms(SOCKET clientSocket, std::vector<room>& gameRooms) {
     // Gửi số lượng phòng trước
     int numRooms = gameRooms.size();
     send(clientSocket, reinterpret_cast<char*>(&numRooms), sizeof(int), 0);
 
     // Gửi thông tin từng phòng
-    for (const auto& room : gameRooms) {
+    for (auto& room : gameRooms) {
         // Gửi tên phòng
-        int nameSize = room.name.size();
+        std::string  newname = room.name + "||" + room.user1 + "||" + room.user2;
+        int nameSize = newname.size();
         send(clientSocket, reinterpret_cast<char*>(&nameSize), sizeof(int), 0);
-        send(clientSocket, room.name.c_str(), nameSize, 0);
+        send(clientSocket, newname.c_str(), nameSize, 0);
 
         // Gửi số lượng sockets trong phòng
         int numSockets = room.sockets.size();
@@ -545,6 +548,7 @@ void handleClient(int clientSocket) {
             std::string e, p;
             e = clientInfo.arr[1];
             p = clientInfo.arr[2];
+            std::string nameClient = clientInfo.arr[3];
             int checkSuccess = 0;
             // Gửi thông tin từng phòng
             for (const auto& room : gameRooms) {
@@ -563,6 +567,8 @@ void handleClient(int clientSocket) {
                 room1.number = 1;
                 room1.status = false;
                 room1.sockets.push_back(clientSocket);  
+                std::cout << "\n---" << nameClient << "---\n";
+                room1.user1 = nameClient;
                 gameRooms.push_back(room1);
             }
             
@@ -570,19 +576,22 @@ void handleClient(int clientSocket) {
         }
         // tham gia phong
         else if (clientInfo.arr[0] == "JOIN_ROOM") {
-            std::string e, p;
+            std::string e, p, nameClient1;
             e = clientInfo.arr[1];
             p = clientInfo.arr[2];
+            nameClient1 = clientInfo.arr[3];
             int checkSuccess = 0;
             // Kiểm tra thông tin từng phòng
             for (auto& room : gameRooms) {
                 if (e == room.name) {
                     if (p == room.passwd) {
                         
-                        if (!contains(room.sockets, clientSocket)) {
+                        if (room.user1 != "" && room.user1 != nameClient1) {
                             room.sockets.push_back(clientSocket);
                             room.number = 2;
                             room.status = true;
+                            room.user2 = nameClient1;
+                            std::cout << "\n---" << nameClient1 << "---\n";
                             send(clientSocket, "+OK||8", 7, 0);
                         }
                         else {
