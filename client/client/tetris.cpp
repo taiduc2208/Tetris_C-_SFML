@@ -57,9 +57,15 @@ Tetris::Tetris(SOCKET socket, std::string name, int levelTetris) {
     for (std::size_t i{}; i < squares; ++i) {
         z[i].x = forms[number][i] % 2;
         z[i].y = forms[number][i] / 2;
-        predict[i].x = z[i].x;
-        predict[i].y = z[i].y;
     }
+
+    number = std::rand() % shapes;
+    for (std::size_t i{}; i < squares; ++i) {
+        predict[i].x = forms[number][i] % 2;
+        predict[i].y = forms[number][i] / 2;
+        std::cout << (predict[i].x + 12) * 36 << "--" << (predict[i].y + 12) * 36 << "\n";
+    }
+
 
     font.loadFromFile("font/font.ttf");
     txtScore.setFont(font);
@@ -73,6 +79,19 @@ Tetris::Tetris(SOCKET socket, std::string name, int levelTetris) {
     txtGameOver.setString("GAME OVER");
     txtGameOver.setCharacterSize(50);
     txtGameOver.setOutlineThickness(3);
+
+    txtLevel.setFont(font);
+    txtLevel.setPosition(460.f, 10.f);
+    txtLevel.setString("LEVEL :" + std::to_string(level + 1));
+    txtLevel.setCharacterSize(50);
+    txtLevel.setOutlineThickness(3);
+
+    textNext.setFont(font);
+    textNext.setPosition(400.f, 360.f);
+    textNext.setString("Next");
+    textNext.setCharacterSize(50);
+    textNext.setOutlineThickness(3);
+
 }
 
 void Tetris::events() {
@@ -114,6 +133,20 @@ void Tetris::events() {
 void Tetris::draw() {
     window->clear(sf::Color::Black);
     window->draw(*background);
+    sf::Color greyColor(128, 128, 128);
+    sf::FloatRect topRect(360.f, 0.f, 360.f, 400.f);
+    sf::FloatRect bottomRect(360.f, 600.f, 360.f, 120.f);
+    sf::RectangleShape topFrame(sf::Vector2f(topRect.width, topRect.height));
+    sf::RectangleShape bottomFrame(sf::Vector2f(bottomRect.width, bottomRect.height));
+
+    topFrame.setFillColor(greyColor);
+    bottomFrame.setFillColor(greyColor);
+
+    // Đặt vị trí cho từng frame
+    topFrame.setPosition(topRect.left, topRect.top);
+    bottomFrame.setPosition(bottomRect.left, bottomRect.top);
+    window->draw(topFrame);
+    window->draw(bottomFrame);
 
     for (std::size_t i{}; i < lines; ++i) {
         for (std::size_t j{}; j < cols; ++j) {
@@ -133,11 +166,15 @@ void Tetris::draw() {
         predictAbu->setTextureRect(sf::IntRect(color * 36, 0, 36, 36));
         predictAbu->setPosition((predict[i].x + 12) * 36, (predict[i].y + 12) * 36);
 
+        
+
         window->draw(*predictAbu);
         window->draw(*sprite);
     }
 
     window->draw(txtScore);
+    window->draw(txtLevel);
+    window->draw(textNext);
     if (gameover) {
         window->draw(txtGameOver);
     }
@@ -213,13 +250,17 @@ void Tetris::moveToDown() {
                 area[k[i].y][k[i].x] = color;
             }
 
+
+            for (std::size_t i{}; i < squares; ++i) {
+                z[i].x = predict[i].x;
+                z[i].y = predict[i].y;
+            }
             color = std::rand() % shapes + 1;
             std::uint32_t number = std::rand() % shapes;
             for (std::size_t i{}; i < squares; ++i) {
-                z[i].x = forms[number][i] % 2;
-                z[i].y = forms[number][i] / 2;
-                predict[i].x = z[i].x;
-                predict[i].y = z[i].y;
+                predict[i].x = forms[number][i] % 2;
+                predict[i].y = forms[number][i] / 2;
+                
             }
         }
 
@@ -307,7 +348,7 @@ void Tetris::setScore() {
                 score += (countLines - 1);
             }
             txtScore.setString("SCORE: " + std::to_string(++score));
-            level++;
+            txtLevel.setString("LEVEL: " + std::to_string(++level));
             std::cout << "score:\t" << score << "---speed:\t" << (30/delay) << "\n";
         }
     }

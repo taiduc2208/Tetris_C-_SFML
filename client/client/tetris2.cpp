@@ -7,12 +7,13 @@ Tetris2::~Tetris2() {
     // ...
 }
 sf::RectangleShape divider;
-Tetris2::Tetris2(SOCKET socket, std::string name, std::string nameLogin) {
+Tetris2::Tetris2(SOCKET socket, std::string name, std::string nameLogin, std::string nameEnermy) {
 
     gameSocket = socket;
     roomName = name;
     sendResult = false;
     nameLog = nameLogin;
+    level = 0;
 
     areaEnermy.resize(lines);
     for (std::size_t i{}; i < areaEnermy.size(); ++i) {
@@ -35,8 +36,8 @@ Tetris2::Tetris2(SOCKET socket, std::string name, std::string nameLogin) {
     };
 
     window = std::make_shared<sf::RenderWindow>(
-        //sf::VideoMode(724, 720),
-        sf::VideoMode(360, 720),
+        sf::VideoMode(720, 720),
+       // sf::VideoMode(360, 720),
         "Tetris 2 player (remix)",
         sf::Style::Titlebar | sf::Style::Close
     );
@@ -46,6 +47,10 @@ Tetris2::Tetris2(SOCKET socket, std::string name, std::string nameLogin) {
     sprite = std::make_shared<sf::Sprite>();
     sprite->setTexture(tiles);
     sprite->setTextureRect(sf::IntRect(0, 0, 36, 36));
+
+    predictAbu = std::make_shared<sf::Sprite>();
+    predictAbu->setTexture(tiles);
+    predictAbu->setTextureRect(sf::IntRect(0, 0, 36, 36));
 
     bg.loadFromFile("images/background1.png");
     background = std::make_shared<sf::Sprite>();
@@ -75,6 +80,8 @@ Tetris2::Tetris2(SOCKET socket, std::string name, std::string nameLogin) {
     for (std::size_t i{}; i < squares; ++i) {
         z[i].x = forms[number][i] % 2;
         z[i].y = forms[number][i] / 2;
+        predict[i].x = z[i].x;
+        predict[i].y = z[i].y;
     }
 
     font.loadFromFile("font/font.ttf");
@@ -189,6 +196,11 @@ void Tetris2::draw() {
         sprite->setTextureRect(sf::IntRect(color * 36, 0, 36, 36));
         sprite->setPosition(z[i].x * 36, z[i].y * 36);
         window->draw(*sprite);
+
+        predictAbu->setTextureRect(sf::IntRect(color * 36, 0, 36, 36));
+        predictAbu->setPosition((predict[i].x + 12) * 36, (predict[i].y + 12) * 36);
+
+        window->draw(*predictAbu);
     }
    
 
@@ -284,6 +296,8 @@ void Tetris2::moveToDown() {
             for (std::size_t i{}; i < squares; ++i) {
                 z[i].x = forms[number][i] % 2;
                 z[i].y = forms[number][i] / 2;
+                predict[i].x = z[i].x;
+                predict[i].y = z[i].y;
             }
         }
 
@@ -314,7 +328,7 @@ void Tetris2::setRotate() {
 void Tetris2::resetValues() {
     dirx = 0;
     rotate = false;
-    delay = 0.3f;
+    delay = 0.3f - level * 0.01f;
 }
 
 void Tetris2::changePosition() {
@@ -344,6 +358,8 @@ bool Tetris2::maxLimit() {
 
 void Tetris2::setScore() {
     std::uint32_t match = lines - 1;
+    int countLines = 0;
+    bool checkPrint = false;
     for (std::size_t i = match; i >= 1; --i) {
         std::uint32_t sum{};
         for (std::size_t j{}; j < cols; ++j) {
@@ -359,7 +375,18 @@ void Tetris2::setScore() {
             --match;
         }
         else {
+            countLines++;
+            checkPrint = true;
+            if (countLines >= 2) {
+                score += (countLines - 1);
+            }
             txtScore.setString("SCORE: " + std::to_string(++score));
+            level++;
+            std::cout << "score:\t" << score << "---speed:\t" << (30 / delay) << "\n";
         }
+    }
+    if (checkPrint) {
+        checkPrint = false;
+        std::cout << "number of lines clear:\t" << countLines << "\n";
     }
 }

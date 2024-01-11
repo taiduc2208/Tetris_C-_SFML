@@ -27,7 +27,7 @@ class Tetris {
     std::shared_ptr<sf::Sprite> sprite, background, predictAbu;
     sf::Clock clock;
     sf::Font  font;
-    sf::Text txtScore, txtGameOver;
+    sf::Text txtScore, txtGameOver, txtLevel, textNext;
 
     int dirx, color, score, level;
     bool rotate, gameover, sendData;

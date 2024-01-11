@@ -76,7 +76,7 @@ bool hasLogin = false;
 std::string nameLogin;
 bool showRequest = false;
 int countRequest = 0;
-
+bool countDownCheck = false;
 
 
 struct GameRoom {
@@ -732,10 +732,10 @@ int main() {
 											
 											if (!messInfoHis.arr[i].empty()) {
 												if (i >= 6) {
-													historyFight.emplace_back(std::to_string(i) + ".\t" + messInfoHis.arr[i], arial, 20, sf::Vector2f(100.0f, 50.0f + i * (40.0f)));
+													historyFight.emplace_back(std::to_string(i) + ".\t" + messInfoHis.arr[i], arial, 20, sf::Vector2f(300.0f, 50.0f + (i-5) * (40.0f)));
 												}
 												else {
-													historyFight.emplace_back(std::to_string(i) + ".\t" + messInfoHis.arr[i], arial, 20, sf::Vector2f(250.0f, 50.0f + i * (40.0f)));
+													historyFight.emplace_back(std::to_string(i) + ".\t" + messInfoHis.arr[i], arial, 20, sf::Vector2f(100.0f, 50.0f + i * (40.0f)));
 												}
 											}
 										}
@@ -1079,13 +1079,9 @@ int main() {
 								// Đặt thời gian countdown (giây)
 								int countdownSeconds = 3;
 								// Vòng lặp chính
+								countDownCheck = true;
 								while (windowCount.isOpen()) {
-									sf::Event event;
-									while (windowCount.pollEvent(event)) {
-										if (event.type == sf::Event::Closed) {
-											windowCount.close();
-										}
-									}
+									
 
 									// Giảm thời gian countdown mỗi giây
 									countdownSeconds--;
@@ -1107,13 +1103,16 @@ int main() {
 
 									// Kiểm tra nếu countdown đã kết thúc
 									if (countdownSeconds <= 0) {
+										countDownCheck = false;
 										windowCount.close();
 									}
 								}
 
-
+								std::string enermyName;
+								if (nameLogin == myRoom.user1) enermyName = myRoom.user2;
+								else enermyName = myRoom.user1;
 								std::srand(std::time(0));
-								auto tetris = std::make_shared<Tetris2>(clientSocket, myRoom.name, nameLogin);
+								auto tetris = std::make_shared<Tetris2>(clientSocket, myRoom.name, nameLogin, enermyName);
 								bool sendData2 = false;
 								tetris->setGameOverCallback([&](int score) {
 									// Xử lý khi game over, ví dụ: gửi tín hiệu về server
@@ -1166,13 +1165,9 @@ int main() {
 										// Đặt thời gian countdown (giây)
 										int countdownSeconds1 = 3;
 										// Vòng lặp chính
+										countDownCheck = true;
 										while (windowCount1.isOpen()) {
-											sf::Event event;
-											while (windowCount1.pollEvent(event)) {
-												if (event.type == sf::Event::Closed) {
-													windowCount1.close();
-												}
-											}
+											
 
 											// Giảm thời gian countdown mỗi giây
 											countdownSeconds1--;
@@ -1194,12 +1189,16 @@ int main() {
 
 											// Kiểm tra nếu countdown đã kết thúc
 											if (countdownSeconds1 <= 0) {
+												countDownCheck = false;
 												windowCount1.close();
 											}
 										}
 										bool sendData3 = false;
+										std::string enermyName1;
+										if (nameLogin == myRoom.user1) enermyName1 = myRoom.user2;
+										else enermyName1 = myRoom.user1;
 										std::srand(std::time(0));
-										auto tetris = std::make_shared<Tetris2>(clientSocket, myRoom.name, nameLogin);
+										auto tetris = std::make_shared<Tetris2>(clientSocket, myRoom.name, nameLogin, enermyName1);
 										
 										tetris->setGameOverCallback([&](int score) {
 											// Xử lý khi game over, ví dụ: gửi tín hiệu về server
@@ -1716,58 +1715,64 @@ int main() {
 			}
 			if (scene == 7)
 			{
-				backText.setPosition(10, 560);
-				window.draw(logoSprite);
+				if (!countDownCheck) {
 
-				sf::Text user1, user2;
-				user1.setFont(arial);
-				user1.setCharacterSize(36);
-				user1.setFillColor(sf::Color::White);
-				user1.setPosition(250, 250);
-				user1.setString("User1:\t" + myRoom.user1);
+					backText.setPosition(10, 560);
+					window.draw(logoSprite);
 
-				user2.setFont(arial);
-				user2.setCharacterSize(36);
-				user2.setFillColor(sf::Color::White);
-				user2.setPosition(250, 320);
-				user2.setString("User2:\t" + myRoom.user2);
+					sf::Text user1, user2;
+					user1.setFont(arial);
+					user1.setCharacterSize(36);
+					user1.setFillColor(sf::Color::White);
+					user1.setPosition(250, 250);
+					user1.setString("User1:\t" + myRoom.user1);
 
-				window.draw(user1);
+					user2.setFont(arial);
+					user2.setCharacterSize(36);
+					user2.setFillColor(sf::Color::White);
+					user2.setPosition(250, 320);
+					user2.setString("User2:\t" + myRoom.user2);
+
+					window.draw(user1);
 				
 
-				if (myRoom.status) {
-					playButton.setPosition(50, 450);
-					window.draw(user2);
-					window.draw(playButton);
+					if (myRoom.status) {
+						playButton.setPosition(50, 450);
+						window.draw(user2);
+						window.draw(playButton);
+					}
+					window.draw(backButton);
+					window.draw(backText);
 				}
-				window.draw(backButton);
-				window.draw(backText);
 			}
 			if (scene == 8)
 			{
-				backText.setPosition(10, 560);
-				readyButton.setPosition(50, 450);
+				if (!countDownCheck) {
 
-				window.draw(logoSprite);
+					backText.setPosition(10, 560);
+					readyButton.setPosition(50, 450);
 
-				sf::Text user1, user2;
-				user1.setFont(arial);
-				user1.setCharacterSize(36);
-				user1.setFillColor(sf::Color::White);
-				user1.setPosition(250, 250);
-				user1.setString("User1:\t" + myRoom.user1);
+					window.draw(logoSprite);
 
-				user2.setFont(arial);
-				user2.setCharacterSize(36);
-				user2.setFillColor(sf::Color::White);
-				user2.setPosition(250, 320);
-				user2.setString("User2:\t" + myRoom.user2);
+					sf::Text user1, user2;
+					user1.setFont(arial);
+					user1.setCharacterSize(36);
+					user1.setFillColor(sf::Color::White);
+					user1.setPosition(250, 250);
+					user1.setString("User1:\t" + myRoom.user1);
 
-				window.draw(user1);
-				window.draw(user2);
-				window.draw(readyButton);
-				window.draw(backButton);
-				window.draw(backText);
+					user2.setFont(arial);
+					user2.setCharacterSize(36);
+					user2.setFillColor(sf::Color::White);
+					user2.setPosition(250, 320);
+					user2.setString("User2:\t" + myRoom.user2);
+
+					window.draw(user1);
+					window.draw(user2);
+					window.draw(readyButton);
+					window.draw(backButton);
+					window.draw(backText);
+				}
 			}
 			if (scene == 15)
 			{
