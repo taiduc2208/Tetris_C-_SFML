@@ -87,7 +87,7 @@ Tetris::Tetris(SOCKET socket, std::string name, int levelTetris) {
     txtLevel.setOutlineThickness(3);
 
     textNext.setFont(font);
-    textNext.setPosition(400.f, 360.f);
+    textNext.setPosition(400.f, 340.f);
     textNext.setString("Next");
     textNext.setCharacterSize(50);
     textNext.setOutlineThickness(3);

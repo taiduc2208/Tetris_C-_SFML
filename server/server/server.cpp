@@ -253,7 +253,7 @@ void updateFieldInFile(std::string& emailToSearch, int fieldIndex, std::string& 
             case 4:
                 file >> acc1[info].isLoggedIn;
                 file.seekp(file.tellg());
-                file << "\n" << newValue << " ";
+                file << "\n" << newValue + " ";
                 std::cout << "diem tap luyen moi la: " << newValue << "\n";
                 break;
             case 5:
